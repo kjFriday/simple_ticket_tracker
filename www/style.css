@@ -46,3 +46,9 @@ dialog h2 { margin: 0; font-size: 16px; }
 dialog label { display: grid; gap: 4px; color: var(--muted); }
 dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; margin: 4px 0 0; }
 .loading { color: var(--muted); }
+
+/* pixel icon: whole-pixel blocks, never smoothed */
+.px { image-rendering: pixelated; vertical-align: middle; margin-right: 8px; }
+footer .version { float: right; color: var(--muted); }
+.about { text-align: center; max-width: 420px; }
+.about .small { font-size: 12px; color: var(--muted); }

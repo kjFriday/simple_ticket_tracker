@@ -1,5 +1,6 @@
-//! Page wiring. Two sources: the embedded mock snapshot (standalone, edits stay in memory) or the live
-//! CRUD hub (every edit is a real POST/PATCH/DELETE, logged in the status bar).
+//! Page wiring. Two sources: the shared database, served to this page by the desktop program at the same
+//! origin (`/api/...`; every edit is a real POST/PATCH/DELETE, logged in the status bar), or the embedded
+//! mock snapshot (edits stay in memory), used when there is no database or the page runs in a browser.
 
 use crate::core::board::{Filter, Store};
 use crate::core::model::{parse_people, parse_tickets, Person, Status, Ticket};
@@ -18,8 +19,8 @@ use web_sys::{
 const MOCK_TICKETS: &str = include_str!("../mock/tickets.json");
 const MOCK_CUSTOMERS: &str = include_str!("../mock/customers.json");
 const MOCK_EMPLOYEES: &str = include_str!("../mock/employees.json");
-const DEFAULT_HUB: &str = "http://127.0.0.1:8700";
-const PAGE: usize = 500; // the hub's largest ?limit
+const API: &str = ""; // same origin: the desktop program answers /api/... from the shared database
+const PAGE: usize = 500; // the largest ?limit
 
 #[derive(Clone, Copy, PartialEq)]
 enum Source {
@@ -60,18 +61,18 @@ fn mock_data() -> (Vec<Ticket>, Vec<Person>, Vec<Person>) {
 
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
-    let hub = query_param("hub").unwrap_or_else(|| DEFAULT_HUB.into());
+    let hub = API.to_string();
     let (tickets, customers, employees) = mock_data();
     APP.with(|a| {
         *a.borrow_mut() = Some(App { source: Source::Mock, hub: hub.clone(), store: Store::new(tickets), customers, employees, filter: Filter::default() })
     });
-    input("hub-url").set_value(&hub);
+    el("version").set_text_content(Some(concat!("ACME Ticket Tracker ", env!("CARGO_PKG_VERSION"))));
     wire()?;
-    if query_param("source").as_deref() == Some("hub") {
+    if query_param("source").as_deref() == Some("mock") {
+        use_mock("Mock snapshot");
+    } else {
         select("source").set_value("hub");
         spawn_local(load_hub());
-    } else {
-        use_mock("Standalone: mock snapshot");
     }
     Ok(())
 }
@@ -94,8 +95,16 @@ fn use_mock(why: &str) {
 }
 
 async fn load_hub() {
-    let hub = input("hub-url").value().trim().trim_end_matches('/').to_string();
-    status(&format!("Connecting to {hub} ..."), false);
+    let hub = API.to_string();
+    status("Opening the shared database ...", false);
+    let db = match call("GET", "/api/source", None).await {
+        Ok((200, text)) => serde_json::from_str::<Value>(&text).ok().and_then(|v| v["db"].as_str().map(String::from)),
+        _ => None,
+    };
+    let Some(db) = db else {
+        use_mock("No shared database here, so the mock snapshot");
+        return;
+    };
     let loaded = async {
         let t: Vec<Ticket> = serde_json::from_value(Value::Array(fetch_all(&hub, "tickets").await?)).map_err(|e| e.to_string())?;
         let c: Vec<Person> = serde_json::from_value(Value::Array(fetch_all(&hub, "customers").await?)).map_err(|e| e.to_string())?;
@@ -115,11 +124,11 @@ async fn load_hub() {
             });
             refill_pickers();
             draw();
-            status(&format!("Live hub {hub}: {n} tickets. Edits are written through the API."), false);
+            status(&format!("Shared database {db}: {n} tickets. Edits are saved to it."), false);
         }
         Err(err) => {
-            use_mock("Hub unreachable, back on the mock snapshot");
-            status(&format!("Hub unreachable at {hub} ({err}). Showing the mock snapshot."), true);
+            use_mock("Database unavailable, back on the mock snapshot");
+            status(&format!("Could not read the shared database ({err}). Showing the mock snapshot."), true);
         }
     }
 }
@@ -175,6 +184,33 @@ fn now_stamp() -> String {
     iso.chars().take(16).collect()
 }
 
+// ---- the desktop program ----
+
+/// Ask for another database file; the program checks it, saves the choice and the page reloads.
+async fn change_db() {
+    let win = web_sys::window().unwrap();
+    let Ok(Some(path)) = win.prompt_with_message("Path of the shared ACME database (acme.db):") else { return };
+    if path.trim().is_empty() {
+        return;
+    }
+    let body = serde_json::json!({ "path": path.trim() }).to_string();
+    match call("POST", "/host/db", Some(body)).await {
+        Ok((200, _)) => spawn_local(load_hub()),
+        Ok((404, _)) | Err(_) => status("Choosing a database needs the desktop program.", true),
+        Ok((code, text)) => status(&format!("Not used: {}", hub_error(code, &text)), true),
+    }
+}
+
+async fn about() {
+    let info = match call("GET", "/api/source", None).await {
+        Ok((200, text)) => serde_json::from_str::<Value>(&text).unwrap_or(Value::Null),
+        _ => Value::Null,
+    };
+    let db = info["db"].as_str().map(String::from).unwrap_or_else(|| "none (mock snapshot)".into());
+    el("about-db").set_text_content(Some(&format!("Database: {db}")));
+    let _ = about_dialog().show_modal();
+}
+
 // ---- changes ----
 
 async fn apply(change: Change) {
@@ -225,7 +261,7 @@ async fn apply_hub(hub: &str, change: Change) -> Result<String, String> {
             if code != 201 {
                 return Err(format!("POST /api/tickets failed {}", hub_error(code, &text)));
             }
-            t.id = serde_json::from_str::<Value>(&text).ok().and_then(|v| v["id"].as_i64()).ok_or("hub sent no id")?;
+            t.id = serde_json::from_str::<Value>(&text).ok().and_then(|v| v["id"].as_i64()).ok_or("no id in the reply")?;
             let id = t.id;
             with(|a| a.store.tickets.push(t));
             Ok(format!("POST /api/tickets -> 201, id {id}"))
@@ -273,6 +309,10 @@ fn select(id: &str) -> HtmlSelectElement {
     el(id).dyn_into().unwrap()
 }
 
+fn about_dialog() -> HtmlDialogElement {
+    el("about-box").dyn_into().unwrap()
+}
+
 fn dialog() -> HtmlDialogElement {
     el("editor").dyn_into().unwrap()
 }
@@ -299,7 +339,7 @@ fn draw() {
     });
     el("board").set_inner_html(&html);
     el("count").set_text_content(Some(&format!("{shown} of {total} tickets")));
-    el("mode").set_text_content(Some(if source == Source::Hub { "live hub" } else { "mock" }));
+    el("mode").set_text_content(Some(if source == Source::Hub { "shared database" } else { "mock" }));
     el("mode").set_class_name(if source == Source::Hub { "badge live" } else { "badge" });
 }
 
@@ -350,7 +390,7 @@ fn wire() -> Result<(), JsValue> {
         if select("source").value() == "hub" {
             spawn_local(load_hub());
         } else {
-            use_mock("Standalone: mock snapshot");
+            use_mock("Mock snapshot");
         }
     })?;
     on("reload", "click", |_| {
@@ -373,6 +413,9 @@ fn wire() -> Result<(), JsValue> {
         draw();
     })?;
     on("new", "click", |_| open_editor(None))?;
+    on("change-db", "click", |_| spawn_local(change_db()))?;
+    on("about", "click", |_| spawn_local(about()))?;
+    on("about-close", "click", |_| about_dialog().close())?;
     on("e-cancel", "click", |_| dialog().close())?;
     on("editor-form", "submit", |ev| {
         ev.prevent_default();

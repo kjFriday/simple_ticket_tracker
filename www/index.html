@@ -4,20 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ACME Inc. Tickets</title>
+  <link rel="icon" href="favicon.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="top">
-    <h1>ACME Inc. <span>Tickets</span></h1>
+    <h1><img class="px" src="favicon.png" width="32" height="32" alt="">ACME Inc. <span>Tickets</span></h1>
     <span id="mode" class="badge">mock</span>
     <label>Data
       <select id="source">
-        <option value="mock">Mock snapshot (standalone)</option>
-        <option value="hub">Live CRUD hub</option>
+        <option value="hub">Shared database</option>
+        <option value="mock">Mock snapshot</option>
       </select>
     </label>
-    <label>Hub <input id="hub-url" size="24" spellcheck="false"></label>
     <button id="reload" type="button">Reload</button>
+    <button id="change-db" type="button">Database…</button>
+    <button id="about" type="button">About</button>
   </header>
 
   <nav class="filters">
@@ -30,7 +32,7 @@
 
   <main id="board" class="board"><p class="loading">Loading WebAssembly ...</p></main>
 
-  <footer><output id="status"></output></footer>
+  <footer><output id="status"></output><span id="version" class="version"></span></footer>
 
   <dialog id="editor">
     <form id="editor-form">
@@ -52,6 +54,15 @@
         <button type="submit" class="primary">Save</button>
       </menu>
     </form>
+  </dialog>
+
+  <dialog id="about-box" class="about">
+    <img class="px" src="favicon.png" width="128" height="128" alt="">
+    <h2>ACME Ticket Tracker</h2>
+    <p>ACME Inc. (fictional) · Rust compiled to WebAssembly, in its own window.</p>
+    <p id="about-db"></p>
+    <p class="small">Icon: Silk "note" by Mark James (famfamfam.com/lab/icons/silk), CC BY 2.5, enlarged by nearest-neighbour. Code: AGPL-3.0. All data is fictional.</p>
+    <menu><button id="about-close" type="button" class="primary">OK</button></menu>
   </dialog>
 
   <script type="module" src="main.js"></script>
