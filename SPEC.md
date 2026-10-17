@@ -16,15 +16,16 @@ Statuses, in board order: `open` → `in_progress` → `closed`. An unknown stat
 
 ## Changes
 
-| Action | Standalone | Live hub |
+| Action | Mock snapshot | Shared database (served by the desktop program) |
 |---|---|---|
 | New ticket | added in memory | `POST /api/tickets` |
 | Edit | in memory | `PATCH /api/tickets/{id}` with only the changed fields |
 | ← / → | in memory | `PATCH` with `{"status": ...}` |
 | Delete (after confirm) | in memory | `DELETE /api/tickets/{id}` |
 
-Text is cleaned the way the hub's `textsafe` does before it is sent. A hub error (400/404/409) is shown
-in the status bar with the hub's message; the board keeps its last good state.
+Text is cleaned the way the hub's `textsafe` does, in the page and again before it is stored. An error
+(400/404/409, same contract as the hub) is shown in the status bar with its message; the board keeps its
+last good state.
 
 ## Not yet
 
