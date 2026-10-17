@@ -8,7 +8,7 @@ four-line JavaScript loader. ACME Inc. and everyone in it is fictional.
   `POST`/`PATCH`/`DELETE` against the hub's `tickets` table. The status bar shows each call and its answer.
   If the hub is down, the page says so and falls back to the snapshot.
 
-See [SPEC.md](SPEC.md) for what the board does. (`basics.md` is unrelated notification-hub notes, kept as-is.)
+See [SPEC.md](SPEC.md) for what the board does.
 
 ## Build and run
 
