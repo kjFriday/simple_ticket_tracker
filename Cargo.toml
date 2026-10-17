@@ -1,9 +1,9 @@
 [package]
 name = "ticket_tracker"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "AGPL-3.0-only"
-description = "ACME Inc. ticket board: Rust compiled to WebAssembly, reading and writing through the CRUD hub API."
+description = "ACME Inc. ticket board: a desktop window (wry/WebView2) running a Rust/WebAssembly UI over the shared ACME database."
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -21,6 +21,22 @@ web-sys = { version = "0.3", features = [
   "HtmlTextAreaElement", "HtmlDialogElement", "HtmlFormElement", "Event", "EventTarget", "Location",
   "Request", "RequestInit", "RequestMode", "Response", "Headers", "DomStringMap", "console",
 ] }
+
+# The desktop program (cargo build --release --features desktop): a native window hosting the wasm page,
+# serving it and a small hub-compatible API from the shared SQLite file. Off by default, so wasm-pack and
+# plain `cargo test` never compile these.
+[target.'cfg(windows)'.dependencies]
+wry = { version = "0.57", optional = true }
+tao = { version = "0.37", optional = true }
+rusqlite = { version = "0.40", features = ["bundled"], optional = true }
+
+[features]
+desktop = ["dep:wry", "dep:tao", "dep:rusqlite"]
+
+[[bin]]
+name = "acme-tickets"
+path = "src/main.rs"
+required-features = ["desktop"]
 
 [profile.release]
 opt-level = "s"
