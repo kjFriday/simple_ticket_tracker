@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ACME Inc. Tickets</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>ACME Inc. <span>Tickets</span></h1>
+    <span id="mode" class="badge">mock</span>
+    <label>Data
+      <select id="source">
+        <option value="mock">Mock snapshot (standalone)</option>
+        <option value="hub">Live CRUD hub</option>
+      </select>
+    </label>
+    <label>Hub <input id="hub-url" size="24" spellcheck="false"></label>
+    <button id="reload" type="button">Reload</button>
+  </header>
+
+  <nav class="filters">
+    <input id="q" type="search" placeholder="Search title, text, customer or #id">
+    <select id="f-assignee"></select>
+    <select id="f-customer"></select>
+    <span id="count"></span>
+    <button id="new" type="button" class="primary">New ticket</button>
+  </nav>
+
+  <main id="board" class="board"><p class="loading">Loading WebAssembly ...</p></main>
+
+  <footer><output id="status"></output></footer>
+
+  <dialog id="editor">
+    <form id="editor-form">
+      <h2 id="editor-title">New ticket</h2>
+      <input id="e-id" type="hidden">
+      <label>Title <input id="e-title" required maxlength="240"></label>
+      <label>Details <textarea id="e-body" rows="4" maxlength="240"></textarea></label>
+      <label>Customer <select id="e-customer"></select></label>
+      <label>Assignee <select id="e-assignee"></select></label>
+      <label>Status
+        <select id="e-status">
+          <option value="open">Open</option>
+          <option value="in_progress">In progress</option>
+          <option value="closed">Closed</option>
+        </select>
+      </label>
+      <menu>
+        <button id="e-cancel" type="button">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

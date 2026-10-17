@@ -1,0 +1,27 @@
+[package]
+name = "ticket_tracker"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+description = "ACME Inc. ticket board: Rust compiled to WebAssembly, reading and writing through the CRUD hub API."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+  "Window", "Document", "Element", "HtmlElement", "HtmlInputElement", "HtmlSelectElement",
+  "HtmlTextAreaElement", "HtmlDialogElement", "HtmlFormElement", "Event", "EventTarget", "Location",
+  "Request", "RequestInit", "RequestMode", "Response", "Headers", "DomStringMap", "console",
+] }
+
+[profile.release]
+opt-level = "s"
+lto = true
