@@ -114,7 +114,8 @@ fn today() -> String {
     format!("{:04}{m:02}{d:02}", yoe + era * 400 + i64::from(m <= 2))
 }
 
-fn run_installer(o: &Options, spec: &Spec) -> Result<String, String> {
+/// Installs or uninstalls -> a folder to remove once this exe has exited.
+fn run_installer(o: &Options, spec: &Spec) -> Result<Option<PathBuf>, String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let size = std::fs::metadata(&exe).map(|m| m.len()).unwrap_or(0);
     let program = install::Program {
@@ -130,15 +131,17 @@ fn run_installer(o: &Options, spec: &Spec) -> Result<String, String> {
     let plan = install::plan(&program, &paths::real_env, o.root.as_deref(), o.desktop_shortcut, size, &today());
     if o.uninstall {
         let purge = o.purge.then(|| paths::data_dir(spec.app_id, &paths::real_env));
-        let removed = install::uninstall(&plan, &install::powershell, &exe, &install::delete_after_exit, purge.as_deref())?;
-        return Ok(if removed {
+        let (removed, later) = install::uninstall(&plan, &install::powershell, &exe, purge.as_deref())?;
+        tell(o, spec, &if removed {
             format!("{} uninstalled. The database is kept.", spec.name)
         } else {
             format!("{} was not installed; shortcuts and the uninstall entry are cleared.", spec.name)
         });
+        return Ok(later);
     }
     install::install(&plan, &install::powershell)?;
-    Ok(format!("{} {} installed in {}. Find it in the Start menu under ACME Inc.", spec.name, spec.version, plan.install_dir.display()))
+    tell(o, spec, &format!("{} {} installed in {}. Find it in the Start menu under ACME Inc.", spec.name, spec.version, plan.install_dir.display()));
+    Ok(None)
 }
 
 /// The database in use (None: the page runs on its mock snapshot) and why not, if not.
@@ -234,12 +237,14 @@ pub fn main(spec: Spec) {
         return;
     }
     if o.install || o.uninstall {
-        match run_installer(&o, &spec) {
-            Ok(msg) => tell(&o, &spec, &msg),
-            Err(e) => {
-                tell(&o, &spec, &format!("{}: {e}", spec.name));
-                std::process::exit(1);
-            }
+        let done = run_installer(&o, &spec).and_then(|later| match later {
+            // the very last action, after the message box: the cmd removes the folder once this exe has exited
+            Some(dir) => install::delete_after_exit(&dir),
+            None => Ok(()),
+        });
+        if let Err(e) = done {
+            tell(&o, &spec, &format!("{}: {e}", spec.name));
+            std::process::exit(1);
         }
         return;
     }

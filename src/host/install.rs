@@ -265,9 +265,10 @@ pub fn safe_to_remove(p: &Plan) -> bool {
     inside && read_marker(&p.install_dir).is_some_and(|m| m["app_id"].as_str() == Some(&p.app_id))
 }
 
-/// Removes shortcuts, registry entry and install folder; when `running` is inside that folder,
-/// `delete_later` removes it after this process exits. -> whether a folder was removed.
-pub fn uninstall(p: &Plan, run: Runner, running: &Path, delete_later: &dyn Fn(&Path) -> Result<(), String>, purge: Option<&Path>) -> Result<bool, String> {
+/// Removes shortcuts, registry entry and install folder; when `running` is inside that folder it removes
+/// the rest and returns the folder as later: the caller passes it to `delete_after_exit` as its very last
+/// action, after any message box. -> (whether a folder was removed, later).
+pub fn uninstall(p: &Plan, run: Runner, running: &Path, purge: Option<&Path>) -> Result<(bool, Option<PathBuf>), String> {
     let mut p = p.clone();
     if let Some(m) = read_marker(&p.install_dir) {
         for s in m["shortcuts"].as_array().into_iter().flatten().filter_map(Value::as_str) {
@@ -288,7 +289,7 @@ pub fn uninstall(p: &Plan, run: Runner, running: &Path, delete_later: &dyn Fn(&P
         let _ = std::fs::remove_dir_all(dir);
     }
     if !p.install_dir.exists() {
-        return Ok(false);
+        return Ok((false, None));
     }
     if !safe_to_remove(&p) {
         return Err(format!("refusing to delete {}: no matching {MARKER}", p.install_dir.display()));
@@ -300,14 +301,14 @@ pub fn uninstall(p: &Plan, run: Runner, running: &Path, delete_later: &dyn Fn(&P
                 let _ = if path.is_dir() { std::fs::remove_dir_all(path) } else { std::fs::remove_file(path) };
             }
         }
-        delete_later(&p.install_dir)?;
-        return Ok(true);
+        return Ok((true, Some(p.install_dir.clone())));
     }
     std::fs::remove_dir_all(&p.install_dir).map_err(|e| e.to_string())?;
-    Ok(true)
+    Ok((true, None))
 }
 
-/// A hidden cmd that waits a moment, then removes dir (three tries).
+/// A hidden cmd that waits a moment, then removes dir (three tries, for about 4 seconds). Start it as this
+/// process's very last action: it gives up while the exe still runs.
 pub fn delete_after_exit(dir: &Path) -> Result<(), String> {
     use std::os::windows::process::CommandExt;
     let rd = format!("rd /s /q \"{}\"", dir.display());
@@ -385,13 +386,8 @@ mod tests {
         assert!(!p.install_dir.join("www").join("pkg").join(".gitignore").exists());
         let reg: Value = serde_json::from_str(&std::fs::read_to_string(p.registry_file.as_ref().unwrap()).unwrap()).unwrap();
         assert_eq!(reg[&p.registry_key]["DisplayVersion"], "0.2.0");
-        let later = RefCell::new(None);
-        let removed = uninstall(&p, &run, &build.join("acme-test.exe"), &|d| {
-            *later.borrow_mut() = Some(d.to_path_buf());
-            Ok(())
-        }, None)
-        .unwrap();
-        assert!(removed && later.borrow().is_none() && !p.install_dir.exists());
+        let (removed, later) = uninstall(&p, &run, &build.join("acme-test.exe"), None).unwrap();
+        assert!(removed && later.is_none() && !p.install_dir.exists());
         assert!(root.join("acme.db").exists());
         assert_eq!(*scripts.borrow(), 3);
         let _ = std::fs::remove_dir_all(dir);
@@ -403,18 +399,15 @@ mod tests {
         let p = plan(&program(&build), &none, Some(&root), false, 1, "20261017");
         let ok = |_: &str| -> Result<(), String> { Ok(()) };
         install(&p, &ok).unwrap();
-        let later = RefCell::new(None);
-        uninstall(&p, &ok, &p.exe_target, &|d| {
-            *later.borrow_mut() = Some(d.to_path_buf());
-            Ok(())
-        }, None)
-        .unwrap();
-        assert_eq!(later.borrow().as_deref(), Some(p.install_dir.as_path()));
+        // uninstall only names the folder: the caller starts delete_after_exit once its message box is gone
+        let (removed, later) = uninstall(&p, &ok, &p.exe_target, None).unwrap();
+        assert!(removed);
+        assert_eq!(later.as_deref(), Some(p.install_dir.as_path()));
         let left: Vec<_> = std::fs::read_dir(&p.install_dir).unwrap().flatten().map(|e| e.file_name()).collect();
         assert_eq!(left, vec![std::ffi::OsString::from("acme-test.exe")]);
         std::fs::write(p.install_dir.join(MARKER), r#"{"app_id":"ACME.Other"}"#).unwrap();
         assert!(install(&p, &ok).is_err());
-        assert!(uninstall(&p, &ok, &build.join("acme-test.exe"), &|_| Ok(()), None).is_err());
+        assert!(uninstall(&p, &ok, &build.join("acme-test.exe"), None).is_err());
         let _ = std::fs::remove_dir_all(dir);
     }
 }
