@@ -55,6 +55,8 @@ Start menu (`--desktop-shortcut` for the desktop too) and lists it in **Apps & f
 settings and WebView2 profile). `--root DIR` does all of it inside DIR. Other flags: `--version`,
 `--quiet`, `--smoke FILE`.
 
+`wizard-maker.exe build setup.json` (ACME Wizard Maker) makes the setup, `dist\ACME Ticket Tracker-0.2.0-setup.exe`.
+
 ## Tests
 
 ```bash
