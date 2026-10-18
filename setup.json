@@ -1,0 +1,18 @@
+{
+  "id": "ACME.Tickets",
+  "name": "ACME Ticket Tracker",
+  "version": "0.2.0",
+  "publisher": "ACME Inc. (fictional)",
+  "group": "ACME Inc",
+  "icon": "icon/app.ico",
+  "files": [
+    {"from": "target/release/acme-tickets.exe"},
+    {"from": "www", "to": "www"}
+  ],
+  "exclude": [".gitignore"],
+  "run": {"program": "acme-tickets.exe"},
+  "askFolder": true,
+  "shortcuts": {"ask": true, "startMenu": true, "desktop": false},
+  "purge": ["{localappdata}\\ACME Inc\\ACME.Tickets"],
+  "output": "dist/{name}-{version}-setup.exe"
+}
