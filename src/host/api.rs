@@ -1,3 +1,12 @@
+// ==== ACME Inc. portfolio ===============================================
+// Project: simple_ticket_tracker | File: src/host/api.rs
+// About: The page's data API, answered from the shared SQLite file with the CRUD hub's contract...
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
 //! The page's data API, answered from the shared SQLite file with the CRUD hub's contract:
 //! `GET /api/{table}?limit&offset` (newest first, `X-Total-Count`), `GET /api/{table}/{id}`, and for the
 //! one writable table `POST`, `PATCH /{id}`, `DELETE /{id}` with 201/200, 400, 404 and 409. Every string
@@ -274,3 +283,5 @@ mod tests {
         assert!(!missing.exists());
     }
 }
+
+// ==== stamp v1 | author=kjFriday | hmac-sha256=3559b350926b23e5b317f38d514e76f1cae6737be886d5577f78660bc0b73a12 ====

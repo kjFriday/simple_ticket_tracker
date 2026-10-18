@@ -1,3 +1,12 @@
+// ==== ACME Inc. portfolio ===============================================
+// Project: simple_ticket_tracker | File: src/main.rs
+// About: acme-tickets: ACME Ticket Tracker as a desktop program (build with `--features desktop`).
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
 //! acme-tickets: ACME Ticket Tracker as a desktop program (build with `--features desktop`).
 #![windows_subsystem = "windows"]
 
@@ -25,3 +34,5 @@ fn main() {
         smoke_count: "document.querySelectorAll('.card').length",
     });
 }
+
+// ==== stamp v1 | author=kjFriday | hmac-sha256=2fcb893d9693471d565f6076a130ecf0d6ecbf6dd39f9d5770daada3281c8c8a ====

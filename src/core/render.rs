@@ -1,3 +1,12 @@
+// ==== ACME Inc. portfolio ===============================================
+// Project: simple_ticket_tracker | File: src/core/render.rs
+// About: HTML for the board.
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
 //! HTML for the board. Every value from data passes `escape` before it reaches the page.
 
 use super::board::{columns, Filter};
@@ -107,3 +116,5 @@ mod tests {
         assert!(html.contains(r#"<option value="2" selected>Zoe Adams (Sales)"#));
     }
 }
+
+// ==== stamp v1 | author=kjFriday | hmac-sha256=773ae9a6f546d7eeb6349359c66a639a991933b2149098abdc96d92f589169a2 ====

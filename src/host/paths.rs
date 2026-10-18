@@ -1,3 +1,12 @@
+// ==== ACME Inc. portfolio ===============================================
+// Project: simple_ticket_tracker | File: src/host/paths.rs
+// About: Where the program keeps its files.
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
 //! Where the program keeps its files. The shared database is the only link between the ACME
 //! programs; its path is, in order: --db, ACME_DB, the program's saved setting, then
 //! %LOCALAPPDATA%\ACME Inc\acme.db. The setting is %LOCALAPPDATA%\ACME Inc\<app id>\settings.json.
@@ -124,3 +133,5 @@ mod tests {
         let _ = std::fs::remove_dir_all(dir);
     }
 }
+
+// ==== stamp v1 | author=kjFriday | hmac-sha256=fe11108cddd0813da9c24d227890b8b4361eddc1f59a81f00e9621483db762e7 ====

@@ -1,3 +1,12 @@
+// ==== ACME Inc. portfolio ===============================================
+// Project: simple_ticket_tracker | File: src/core/board.rs
+// About: Board state: filtering, columns, and the in-memory store used in mock (standalone) mode.
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
 //! Board state: filtering, columns, and the in-memory store used in mock (standalone) mode.
 
 use super::model::{Person, Status, Ticket};
@@ -126,3 +135,5 @@ mod tests {
         assert_eq!(s.tickets.len(), 4);
     }
 }
+
+// ==== stamp v1 | author=kjFriday | hmac-sha256=465cb914e3035de5fdc8cd5da319040584e83a9f5971b6c8eb15d63fd2d741e3 ====

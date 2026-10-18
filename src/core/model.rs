@@ -1,3 +1,12 @@
+// ==== ACME Inc. portfolio ===============================================
+// Project: simple_ticket_tracker | File: src/core/model.rs
+// About: Rows as the hub serves them (`GET /api/{table}`); unknown columns are ignored.
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
 //! Rows as the hub serves them (`GET /api/{table}`); unknown columns are ignored.
 
 use serde::{Deserialize, Serialize};
@@ -151,3 +160,5 @@ mod tests {
         assert_eq!(name_of(&p, None), "Unassigned");
     }
 }
+
+// ==== stamp v1 | author=kjFriday | hmac-sha256=8a343bb3d686d317a9cad8e8884e75b10cc584e8a24de56fad5dedc7a1e2d66a ====

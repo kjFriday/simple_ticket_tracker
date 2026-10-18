@@ -1,3 +1,12 @@
+// ==== ACME Inc. portfolio ===============================================
+// Project: simple_ticket_tracker | File: src/host/assets.rs
+// About: The page's files (index.html, the wasm build, the icon), served from the `www` folder...
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
 //! The page's files (index.html, the wasm build, the icon), served from the `www` folder beside the
 //! exe, or the project's own `www` when run from the source tree.
 
@@ -98,3 +107,5 @@ mod tests {
         let _ = std::fs::remove_dir_all(&tmp);
     }
 }
+
+// ==== stamp v1 | author=kjFriday | hmac-sha256=d882cea80e0b3686ff069ad05b5fe911da348df9944cfd743e18ee1b6d30ea72 ====

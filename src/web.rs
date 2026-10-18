@@ -1,3 +1,12 @@
+// ==== ACME Inc. portfolio ===============================================
+// Project: simple_ticket_tracker | File: src/web.rs
+// About: Page wiring.
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
 //! Page wiring. Two sources: the shared database, served to this page by the desktop program at the same
 //! origin (`/api/...`; every edit is a real POST/PATCH/DELETE, logged in the status bar), or the embedded
 //! mock snapshot (edits stay in memory), used when there is no database or the page runs in a browser.
@@ -456,3 +465,5 @@ fn wire() -> Result<(), JsValue> {
     })?;
     Ok(())
 }
+
+// ==== stamp v1 | author=kjFriday | hmac-sha256=5ababdd3380c75f8a74630d1bd41d224696ace238308db37450b689cb5531bc9 ====

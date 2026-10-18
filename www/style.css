@@ -1,3 +1,12 @@
+/* ==== ACME Inc. portfolio =============================================== */
+/* Project: simple_ticket_tracker | File: www/style.css */
+/* About: CSS source for simple_ticket_tracker. */
+/* Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only */
+/* You may change this file under the AGPL-3.0. The stamp at the end marks */
+/* the version kjFriday wrote. Verify with the portfolio's stamp.py --check. */
+/* Reused code, if any, is mapped in PROVENANCE.md. */
+/* ======================================================================== */
+
 :root {
   --bg: #f5f6f8; --panel: #fff; --ink: #1d2330; --muted: #667085; --line: #dde1e7;
   --accent: #2f5bd3; --live: #12805c; --danger: #b42318;
@@ -52,3 +61,5 @@ dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; ma
 footer .version { float: right; color: var(--muted); }
 .about { text-align: center; max-width: 420px; }
 .about .small { font-size: 12px; color: var(--muted); }
+
+/* ==== stamp v1 | author=kjFriday | hmac-sha256=a6e421671568b90f0236c356429ccaf36530db427eb70093dc92623dd49b8c01 ==== */
