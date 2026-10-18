@@ -31,12 +31,22 @@ pub fn resolve(root: &Path, url_path: &str) -> Option<PathBuf> {
     Some(out)
 }
 
-/// The www folder: beside the exe when installed, else the source tree's (cargo run).
+/// The www folder: beside the exe when installed, else the source tree's (cargo run, target\release).
 pub fn www_dir() -> PathBuf {
-    let beside = std::env::current_exe().ok().and_then(|e| e.parent().map(|d| d.join("www")));
-    match beside {
+    www_for(&std::env::current_exe().unwrap_or_default())
+}
+
+/// The www beside exe, else the one in the project above the `target` folder holding exe. Found from the
+/// exe's path at run time, so no build compiles in the folder it was built in.
+fn www_for(exe: &Path) -> PathBuf {
+    let beside = exe.with_file_name("www");
+    if beside.join("index.html").is_file() {
+        return beside;
+    }
+    let target = exe.ancestors().find(|d| d.file_name().is_some_and(|n| n.eq_ignore_ascii_case("target")));
+    match target.and_then(Path::parent).map(|project| project.join("www")) {
         Some(d) if d.join("index.html").is_file() => d,
-        _ => PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("www"),
+        _ => beside,
     }
 }
 
@@ -66,5 +76,25 @@ mod tests {
     fn source_tree_has_the_page() {
         let www = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("www");
         assert!(www.join("index.html").is_file() && www.join("favicon.png").is_file());
+        assert_eq!(www_dir(), www); // this test exe runs from target\debug\deps
+    }
+
+    #[test]
+    fn www_beside_the_exe_or_above_target() {
+        let tmp = std::env::temp_dir().join(format!("acme-assets-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        for dir in ["installed", "project", "project/target/release"] {
+            std::fs::create_dir_all(tmp.join(dir).join("www")).unwrap();
+        }
+        for dir in ["installed", "project"] {
+            std::fs::write(tmp.join(dir).join("www").join("index.html"), "").unwrap();
+        }
+        let exe = "acme.exe";
+        assert_eq!(www_for(&tmp.join("installed").join(exe)), tmp.join("installed").join("www"));
+        let built = tmp.join("project").join("target").join("release");
+        assert_eq!(www_for(&built.join(exe)), tmp.join("project").join("www"));
+        // no page anywhere: the folder beside the exe, as when installed
+        assert_eq!(www_for(&tmp.join("other").join(exe)), tmp.join("other").join("www"));
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }
