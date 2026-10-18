@@ -5,6 +5,7 @@
   "publisher": "ACME Inc. (fictional)",
   "group": "ACME Inc",
   "icon": "icon/app.ico",
+  "license": "LICENSE",
   "files": [
     {"from": "target/release/acme-tickets.exe"},
     {"from": "www", "to": "www"}
