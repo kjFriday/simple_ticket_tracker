@@ -2,8 +2,9 @@
 //! icon go to %LOCALAPPDATA%\Programs\ACME Inc\<name>\ with an install.json marker; a Start-menu shortcut
 //! (and optionally a desktop one) and an uninstall entry under HKCU\...\Uninstall\<app id> make it show
 //! in the Start menu and Apps & features. Uninstall removes all of it and never the shared database. An
-//! install that a setup made by ACME Wizard Maker left (its marker names the installer) is removed by its
-//! own uninstall.exe instead, which keeps the files changed since: see `wizard`.
+//! install that a setup made by ACME Wizard Maker left (its marker names the installer), here or in the folder
+//! its uninstall entry names, is removed by its own uninstall.exe instead, which keeps the files changed
+//! since: see `located` and `wizard`.
 //!
 //! Same three layers as the other ACME programs: `plan` (pure), `script` (pure PowerShell, fed on stdin)
 //! and `install`/`uninstall` with a replaceable runner. A sandbox root keeps everything under it, with
@@ -184,6 +185,13 @@ pub type Runner<'a> = &'a dyn Fn(&str) -> Result<(), String>;
 
 /// The real runner: the script goes on stdin, so no quoting reaches the command line.
 pub fn powershell(script: &str) -> Result<(), String> {
+    read_powershell(script).map(|_| ())
+}
+
+pub type Reader<'a> = &'a dyn Fn(&str) -> Result<String, String>;
+
+/// The real `Reader`: runs a script like `powershell` -> what it printed.
+pub fn read_powershell(script: &str) -> Result<String, String> {
     use std::io::Write;
     use std::os::windows::process::CommandExt;
     let mut child = Command::new("powershell.exe")
@@ -196,7 +204,11 @@ pub fn powershell(script: &str) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     child.stdin.take().unwrap().write_all(script.as_bytes()).map_err(|e| e.to_string())?;
     let out = child.wait_with_output().map_err(|e| e.to_string())?;
-    if out.status.success() { Ok(()) } else { Err(format!("PowerShell: {}", String::from_utf8_lossy(&out.stderr).trim())) }
+    if out.status.success() {
+        Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+    } else {
+        Err(format!("PowerShell: {}", String::from_utf8_lossy(&out.stderr).trim()))
+    }
 }
 
 fn read_marker(dir: &Path) -> Option<Value> {
@@ -320,6 +332,35 @@ pub fn wizard(p: &Plan) -> Option<PathBuf> {
     let m = read_marker(&p.install_dir)?;
     let made = m["app_id"].as_str() == Some(&p.app_id) && m["installer"].as_str().is_some_and(|s| !s.is_empty());
     made.then(|| p.install_dir.join(WIZARD_UNINSTALLER))
+}
+
+/// The folder the uninstall entry names, or "": from root\registry.json in a sandbox, else read from the
+/// registry through PowerShell.
+pub fn install_location(p: &Plan, read: Reader) -> Result<String, String> {
+    if let Some(file) = &p.registry_file {
+        let data: Value = std::fs::read_to_string(file).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default();
+        return Ok(data[&p.registry_key]["InstallLocation"].as_str().unwrap_or_default().to_string());
+    }
+    read(&format!(
+        "[Console]::OutputEncoding = [Text.Encoding]::UTF8\n(Get-ItemProperty -LiteralPath {} -Name InstallLocation -ErrorAction SilentlyContinue).InstallLocation\n",
+        literal(&p.registry_key)
+    ))
+}
+
+/// `p` aimed at the install its uninstall entry names when that lies outside its install folder: a setup
+/// made by ACME Wizard Maker installs where the user picks. Only such an install (see `wizard`) is handed
+/// on; any other folder still there is refused, so its entry and shortcuts are never cleared.
+pub fn located(p: &Plan, read: Reader) -> Result<Plan, String> {
+    let location = PathBuf::from(install_location(p, read)?);
+    if !location.is_absolute() || same(&location, &p.install_dir) || !location.exists() {
+        return Ok(p.clone()); // none, this folder, or a stale entry: clearing it orphans nothing
+    }
+    let mut there = p.clone();
+    there.install_dir = location;
+    match wizard(&there) {
+        Some(_) => Ok(there),
+        None => Err(format!("{} is installed in {}, which this copy cannot uninstall: use Apps & features", p.name, there.install_dir.display())),
+    }
 }
 
 /// The flags --uninstall passes on to that uninstaller.
@@ -530,6 +571,86 @@ mod tests {
         let elsewhere = plan(&program(&build), &none, Some(&root.join("x")), false, 1, "20261017");
         assert!(run_uninstaller(&elsewhere, &build.join("acme-test.exe"), &[], &busy).is_err());
         assert_eq!(calls.borrow().len(), 1);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    /// The sandbox uninstall entry naming `folder`, as a setup writes it.
+    fn entry(p: &Plan, folder: &Path) {
+        edit_registry_file(p.registry_file.as_ref().unwrap(), |d| {
+            d.insert(p.registry_key.clone(), json!({"InstallLocation": folder.display().to_string()}));
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn located_finds_a_wizard_install_elsewhere() {
+        let (dir, build, root) = setup("located");
+        let p = plan(&program(&build), &none, Some(&root), false, 1, "20261017");
+        let real = |_: &str| -> Result<String, String> { panic!("read the real registry in a sandbox") };
+        assert_eq!(located(&p, &real).unwrap().install_dir, p.install_dir, "no entry");
+        let mut elsewhere = p.clone();
+        elsewhere.install_dir = std::path::absolute(&root).unwrap().join("Apps").join("Journal");
+        entry(&p, &elsewhere.install_dir);
+        assert_eq!(located(&p, &real).unwrap().install_dir, p.install_dir, "a stale entry");
+        wizard_install(&elsewhere, "ACME.Test");
+        let there = located(&p, &real).unwrap();
+        assert_eq!(there.install_dir, elsewhere.install_dir);
+        let calls = RefCell::new(Vec::new());
+        let done = |exe: &Path, _: &[String]| -> Result<(i32, String), String> {
+            calls.borrow_mut().push(exe.to_path_buf());
+            Ok((0, String::new()))
+        };
+        assert_eq!(run_uninstaller(&there, &build.join("acme-test.exe"), &[], &done).unwrap().0, 0);
+        assert_eq!(*calls.borrow(), vec![elsewhere.install_dir.join("uninstall.exe")]);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn located_never_clears_an_install_elsewhere() {
+        let (dir, build, root) = setup("elsewhere");
+        let p = plan(&program(&build), &none, Some(&root), false, 1, "20261017");
+        let mut elsewhere = p.clone();
+        elsewhere.install_dir = std::path::absolute(&root).unwrap().join("Apps").join("Journal");
+        entry(&p, &elsewhere.install_dir);
+        let empty = |_: &str| -> Result<String, String> { Ok(String::new()) };
+        wizard_install(&elsewhere, "ACME.Other");
+        assert!(located(&p, &empty).is_err());
+        std::fs::remove_file(elsewhere.install_dir.join(MARKER)).unwrap();
+        assert!(located(&p, &empty).is_err());
+        assert!(std::fs::read_to_string(p.registry_file.as_ref().unwrap()).unwrap().contains("InstallLocation"));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn located_reads_the_real_registry() {
+        let (dir, build, root) = setup("registry");
+        let p = plan(&program(&build), &none, None, false, 1, "20261017");
+        let folder = std::path::absolute(&root).unwrap().join("Apps").join("Journal");
+        let mut elsewhere = p.clone();
+        elsewhere.install_dir = folder.clone();
+        wizard_install(&elsewhere, "ACME.Test");
+        let scripts = RefCell::new(Vec::new());
+        let read = |s: &str| -> Result<String, String> {
+            scripts.borrow_mut().push(s.to_string());
+            Ok(folder.display().to_string())
+        };
+        assert_eq!(located(&p, &read).unwrap().install_dir, folder);
+        assert!(scripts.borrow()[0].contains(r"Get-ItemProperty -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ACME.Test' -Name InstallLocation"));
+        let relative = |_: &str| -> Result<String, String> { Ok("Apps".into()) };
+        assert_eq!(located(&p, &relative).unwrap().install_dir, p.install_dir, "never a relative folder");
+        let failed = |_: &str| -> Result<String, String> { Err("denied".into()) };
+        assert!(located(&p, &failed).is_err());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn read_powershell_prints_utf8() {
+        let out = read_powershell("[Console]::OutputEncoding = [Text.Encoding]::UTF8\n'M' + [char]0xF6 + 'tley'\n").unwrap();
+        assert_eq!(out, "M\u{f6}tley");
+        let (dir, build, _) = setup("noentry");
+        let mut p = plan(&program(&build), &none, None, false, 1, "20261017");
+        p.registry_key = format!(r"{UNINSTALL_KEY}\ACME.NoSuchProgram.Test");
+        assert_eq!(install_location(&p, &read_powershell).unwrap(), "");
         let _ = std::fs::remove_dir_all(dir);
     }
 

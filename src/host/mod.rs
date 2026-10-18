@@ -130,6 +130,7 @@ fn run_installer(o: &Options, spec: &Spec) -> Result<(i32, Option<PathBuf>), Str
     };
     let plan = install::plan(&program, &paths::real_env, o.root.as_deref(), o.desktop_shortcut, size, &today());
     if o.uninstall {
+        let plan = install::located(&plan, &install::read_powershell)?;
         if install::wizard(&plan).is_some() {
             // a setup made by ACME Wizard Maker installed it: its uninstaller keeps the files changed since
             let args = install::uninstall_args(o.quiet, o.purge, o.root.as_deref());
