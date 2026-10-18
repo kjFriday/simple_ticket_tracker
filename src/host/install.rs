@@ -1,7 +1,9 @@
 //! Install or uninstall the program for the current user (no admin rights): the exe, its `www` page and
 //! icon go to %LOCALAPPDATA%\Programs\ACME Inc\<name>\ with an install.json marker; a Start-menu shortcut
 //! (and optionally a desktop one) and an uninstall entry under HKCU\...\Uninstall\<app id> make it show
-//! in the Start menu and Apps & features. Uninstall removes all of it and never the shared database.
+//! in the Start menu and Apps & features. Uninstall removes all of it and never the shared database. An
+//! install that a setup made by ACME Wizard Maker left (its marker names the installer) is removed by its
+//! own uninstall.exe instead, which keeps the files changed since: see `wizard`.
 //!
 //! Same three layers as the other ACME programs: `plan` (pure), `script` (pure PowerShell, fed on stdin)
 //! and `install`/`uninstall` with a replaceable runner. A sandbox root keeps everything under it, with
@@ -13,6 +15,10 @@ use std::process::{Command, Stdio};
 
 pub const UNINSTALL_KEY: &str = r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall";
 pub const MARKER: &str = "install.json";
+/// What a setup made by ACME Wizard Maker leaves in the install folder.
+pub const WIZARD_UNINSTALLER: &str = "uninstall.exe";
+/// That uninstaller's exit code when the user cancels it in its window.
+pub const CANCELLED: i32 = 3;
 
 pub struct Program<'a> {
     pub app_id: &'a str,
@@ -307,6 +313,64 @@ pub fn uninstall(p: &Plan, run: Runner, running: &Path, purge: Option<&Path>) ->
     Ok((true, None))
 }
 
+/// The uninstaller of an install that a setup made by ACME Wizard Maker left in the install folder (its
+/// marker names this program and an installer), or None for this program's own install. Such an install
+/// is removed by that uninstaller, which takes away only the files still as installed.
+pub fn wizard(p: &Plan) -> Option<PathBuf> {
+    let m = read_marker(&p.install_dir)?;
+    let made = m["app_id"].as_str() == Some(&p.app_id) && m["installer"].as_str().is_some_and(|s| !s.is_empty());
+    made.then(|| p.install_dir.join(WIZARD_UNINSTALLER))
+}
+
+/// The flags --uninstall passes on to that uninstaller.
+pub fn uninstall_args(quiet: bool, purge: bool, root: Option<&Path>) -> Vec<String> {
+    let mut args = Vec::new();
+    if quiet {
+        args.push("-quiet".to_string());
+    }
+    if purge {
+        args.push("-purge".to_string());
+    }
+    if let Some(root) = root {
+        args.push("-root".to_string());
+        args.push(std::path::absolute(root).unwrap_or_else(|_| root.to_path_buf()).display().to_string());
+    }
+    args
+}
+
+pub type Exec<'a> = &'a dyn Fn(&Path, &[String]) -> Result<(i32, String), String>;
+
+/// The real `Exec`: runs exe and waits -> (exit code, what it printed). It starts in the temp folder, so
+/// it never holds the folder it removes.
+pub fn run_and_wait(exe: &Path, args: &[String]) -> Result<(i32, String), String> {
+    let out = Command::new(exe).args(args).current_dir(std::env::temp_dir()).output().map_err(|e| e.to_string())?;
+    let said = String::from_utf8_lossy(&out.stdout).to_string() + &String::from_utf8_lossy(&out.stderr);
+    Ok((out.status.code().unwrap_or(1), said.trim().to_string()))
+}
+
+/// Removes a wizard-made install (see `wizard`) through its uninstaller, run with `args` -> its exit code
+/// (0 done, `CANCELLED`, ...) and how it went. Refuses while `running` lies in the install folder: Windows
+/// cannot delete a running exe, so the uninstaller would stop half-way.
+pub fn run_uninstaller(p: &Plan, running: &Path, args: &[String], run: Exec) -> Result<(i32, String), String> {
+    let exe = wizard(p).ok_or_else(|| format!("{} holds no wizard-made install of {}", p.install_dir.display(), p.name))?;
+    let running = std::path::absolute(running).unwrap_or_else(|_| running.to_path_buf());
+    if running.ancestors().skip(1).any(|d| same(d, &p.install_dir)) {
+        return Err(format!(
+            "this copy runs from {}, which its uninstaller removes: uninstall {} from Apps & features, or run {}",
+            p.install_dir.display(),
+            p.name,
+            exe.display()
+        ));
+    }
+    let (code, mut said) = run(&exe, args).map_err(|e| format!("run {}: {e}", exe.display()))?;
+    if said.is_empty() && code == CANCELLED {
+        said = "Uninstall cancelled.".into();
+    } else if said.is_empty() && code != 0 {
+        said = format!("{WIZARD_UNINSTALLER} exited with {code}");
+    }
+    Ok((code, said))
+}
+
 /// A hidden cmd that waits a moment, then removes dir (three tries, for about 4 seconds). Start it as this
 /// process's very last action: it gives up while the exe still runs.
 pub fn delete_after_exit(dir: &Path) -> Result<(), String> {
@@ -409,5 +473,70 @@ mod tests {
         assert!(install(&p, &ok).is_err());
         assert!(uninstall(&p, &ok, &build.join("acme-test.exe"), None).is_err());
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    /// What a setup made by ACME Wizard Maker leaves: its files, uninstall.exe and a marker with sha256 and
+    /// installer; then notes.txt changes, as a user would change it.
+    fn wizard_install(p: &Plan, app_id: &str) {
+        std::fs::create_dir_all(&p.install_dir).unwrap();
+        let files = ["acme-test.exe", "notes.txt", "app.ico", WIZARD_UNINSTALLER];
+        for f in files {
+            std::fs::write(p.install_dir.join(f), b"as installed").unwrap();
+        }
+        let marker = json!({"app_id": app_id, "name": p.name, "version": p.version, "files": files, "shortcuts": [],
+            "sha256": {"notes.txt": "e3b0"}, "installer": "ACME Wizard Maker 0.1.0"});
+        std::fs::write(p.install_dir.join(MARKER), marker.to_string()).unwrap();
+        std::fs::write(p.install_dir.join("notes.txt"), b"changed by the user").unwrap();
+    }
+
+    #[test]
+    fn wizard_installs_are_their_uninstallers_to_remove() {
+        let (dir, build, root) = setup("wizard");
+        let p = plan(&program(&build), &none, Some(&root), false, 1, "20261017");
+        let ok = |_: &str| -> Result<(), String> { Ok(()) };
+        assert_eq!(wizard(&p), None);
+        install(&p, &ok).unwrap();
+        assert_eq!(wizard(&p), None, "the program's own install");
+        wizard_install(&p, "ACME.Other");
+        assert_eq!(wizard(&p), None, "never another program's uninstaller");
+        wizard_install(&p, "ACME.Test");
+        assert_eq!(wizard(&p), Some(p.install_dir.join("uninstall.exe")));
+        assert!(uninstall_args(false, false, None).is_empty());
+        let abs = std::path::absolute(&root).unwrap().display().to_string();
+        assert_eq!(uninstall_args(true, true, Some(&root)), ["-quiet", "-purge", "-root", abs.as_str()]);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn run_uninstaller_keeps_changed_files_and_its_exit_code() {
+        let (dir, build, root) = setup("uninstaller");
+        let p = plan(&program(&build), &none, Some(&root), false, 1, "20261017");
+        wizard_install(&p, "ACME.Test");
+        let calls = RefCell::new(Vec::new());
+        let busy = |exe: &Path, args: &[String]| -> Result<(i32, String), String> {
+            calls.borrow_mut().push((exe.to_path_buf(), args.to_vec()));
+            Ok((4, "Setup or uninstall of ACME Test App is already running.".into()))
+        };
+        let args = uninstall_args(true, false, Some(&root));
+        let (code, said) = run_uninstaller(&p, &build.join("acme-test.exe"), &args, &busy).unwrap();
+        assert!(code == 4 && said.contains("already running"));
+        assert_eq!(*calls.borrow(), vec![(p.install_dir.join("uninstall.exe"), args.clone())]);
+        assert_eq!(std::fs::read_to_string(p.install_dir.join("notes.txt")).unwrap(), "changed by the user");
+        let cancel = |_: &Path, _: &[String]| -> Result<(i32, String), String> { Ok((CANCELLED, String::new())) };
+        assert_eq!(run_uninstaller(&p, &build.join("acme-test.exe"), &[], &cancel).unwrap(), (CANCELLED, "Uninstall cancelled.".to_string()));
+        // run from inside the folder (in any case) it refuses, as it does with no wizard-made install
+        let inside = PathBuf::from(p.exe_target.display().to_string().to_uppercase());
+        assert!(run_uninstaller(&p, &inside, &[], &busy).is_err());
+        let elsewhere = plan(&program(&build), &none, Some(&root.join("x")), false, 1, "20261017");
+        assert!(run_uninstaller(&elsewhere, &build.join("acme-test.exe"), &[], &busy).is_err());
+        assert_eq!(calls.borrow().len(), 1);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn run_and_wait_returns_the_exit_code() {
+        let args = ["/d", "/c", "echo kept & exit 4"].map(String::from);
+        assert_eq!(run_and_wait(Path::new("cmd.exe"), &args).unwrap(), (4, "kept".to_string()));
+        assert!(run_and_wait(&std::env::temp_dir().join("acme-none").join("uninstall.exe"), &[]).is_err());
     }
 }
