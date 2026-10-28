@@ -1,6 +1,6 @@
 # mock/
 
-A snapshot of the CRUD hub's seeded data, so this project runs on its own. ACME Inc. and every
+A snapshot of the CRUD hub's seeded data, so this project runs on its own. Generic Company Inc. and every
 person, order and ticket here are fictional; names are random pairs from common-name lists and
 free text is lorem ipsum.
 

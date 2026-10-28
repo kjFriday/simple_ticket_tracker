@@ -1,4 +1,13 @@
-// ==== ACME Inc. portfolio ===============================================
+// ==== Generic Company Inc. portfolio ====================================
+// Project: simple_ticket_tracker | File: src/core/validate.rs
+// About: ==== Generic Company Inc. portfolio ===============================================...
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
+// ==== Generic Company Inc. portfolio ===============================================
 // Project: simple_ticket_tracker | File: src/core/validate.rs
 // About: Form input → hub JSON bodies.
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
@@ -163,4 +172,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=3a8a469ea06ebd1a817e1d398088695bc55feb6160e02ca966027bf77101982e ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=7dbd4cc6c40d200d8505919bf533012316b8445cb60201f492e4110ce6aa5a9f ====

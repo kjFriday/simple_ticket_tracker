@@ -1,15 +1,15 @@
 <img src="icon/app-256.png" width="64" height="64" alt="" style="image-rendering: pixelated">
 
-# ACME Ticket Tracker
+# Generic Company Ticket Tracker
 
-A kanban board for ACME Inc. support tickets, as a desktop program: a native window (Edge WebView2)
-running a Rust → WebAssembly page over the shared ACME database. ACME Inc. and everyone in it is
+A kanban board for Generic Company Inc. support tickets, as a desktop program: a native window (Edge WebView2)
+running a Rust → WebAssembly page over the shared Generic Company database. Generic Company Inc. and everyone in it is
 fictional.
 
-- **Shared database:** the window opens the ACME database **by path**: `--db PATH`, the `ACME_DB`
-  environment variable, the file chosen with **Database…**, or `%LOCALAPPDATA%\ACME Inc\acme.db`. Every
+- **Shared database:** the window opens the Generic Company database **by path**: `--db PATH`, the `GENERIC_COMPANY_DB`
+  environment variable, the file chosen with **Database…**, or `%LOCALAPPDATA%\Generic Company Inc\generic_company.db`. Every
   change is a real insert/update/delete on its `tickets` table, answered in-process with the CRUD hub's
-  API contract (paging, `X-Total-Count`, 400/404/409) through the window's own `acme://` protocol: no
+  API contract (paging, `X-Total-Count`, 400/404/409) through the window's own `generic_company://` protocol: no
   network port, no other program needed. The status bar shows each call and its answer.
 - **Mock snapshot:** with no database (or `--mock`, or *Data → Mock snapshot*) the page runs on the
   bundled `mock/` snapshot (400 tickets); edits stay in the page.
@@ -33,7 +33,7 @@ cargo build --release --features desktop
 ```
 
 ```bash
-target\release\acme-tickets.exe
+target\release\generic-company-tickets.exe
 ```
 
 The first command keeps the build machine's paths out of the wasm and the exe: both builds write the
@@ -45,17 +45,17 @@ a plain browser on the mock snapshot (`python -m http.server 8710 --directory ww
 ## Install
 
 ```bash
-target\release\acme-tickets.exe --install
+target\release\generic-company-tickets.exe --install
 ```
 
 Installs for the current user: copies the exe and `www` to
-`%LOCALAPPDATA%\Programs\ACME Inc\ACME Ticket Tracker\`, adds **ACME Inc → ACME Ticket Tracker** to the
+`%LOCALAPPDATA%\Programs\Generic Company Inc\Generic Company Ticket Tracker\`, adds **Generic Company Inc → Generic Company Ticket Tracker** to the
 Start menu (`--desktop-shortcut` for the desktop too) and lists it in **Apps & features**. `--uninstall`
 (or Apps & features) removes it; the database is never deleted (`--purge` also removes the program's
 settings and WebView2 profile). `--root DIR` does all of it inside DIR. Other flags: `--version`,
 `--quiet`, `--smoke FILE`.
 
-`wizard-maker.exe build setup.json` (ACME Wizard Maker) makes the setup, `dist\ACME Ticket Tracker-0.2.0-setup.exe`.
+`wizard-maker.exe build setup.json` (Generic Company Wizard Maker) makes the setup, `dist\Generic Company Ticket Tracker-0.2.0-setup.exe`.
 
 ## Tests
 
@@ -80,8 +80,8 @@ in-memory database built from `mock/schema.sql`, file serving, the installer and
 | `src/core/validate.rs` | Form → JSON; the same text cleaning as the hub's `textsafe` |
 | `src/core/render.rs` | Board and picker HTML, escaped |
 | `src/web.rs` | DOM, events, `fetch` to `/api` (paged with `?limit=500&offset=N`) |
-| `src/host/` | The desktop program: window, `acme://` protocol, API over SQLite, installer, settings |
-| `src/main.rs` | `acme-tickets.exe` |
+| `src/host/` | The desktop program: window, `generic_company://` protocol, API over SQLite, installer, settings |
+| `src/main.rs` | `generic-company-tickets.exe` |
 | `www/` | `index.html`, `style.css`, `main.js`, `favicon.png`; the wasm build writes `www/pkg/` |
 | `icon/` | The pixel icon and its credits |
 | `mock/` | Snapshot and schema from the hub's `export_mock.py`; do not edit |

@@ -1,19 +1,19 @@
 {
-  "id": "ACME.Tickets",
-  "name": "ACME Ticket Tracker",
+  "id": "GenericCompany.Tickets",
+  "name": "Generic Company Ticket Tracker",
   "version": "0.2.0",
-  "publisher": "ACME Inc. (fictional)",
-  "group": "ACME Inc",
+  "publisher": "Generic Company Inc. (fictional)",
+  "group": "Generic Company Inc",
   "icon": "icon/app.ico",
   "license": "LICENSE",
   "files": [
-    {"from": "target/release/acme-tickets.exe"},
+    {"from": "target/release/generic-company-tickets.exe"},
     {"from": "www", "to": "www"}
   ],
   "exclude": [".gitignore"],
-  "run": {"program": "acme-tickets.exe"},
+  "run": {"program": "generic-company-tickets.exe"},
   "askFolder": true,
   "shortcuts": {"ask": true, "startMenu": true, "desktop": false},
-  "purge": ["{localappdata}\\ACME Inc\\ACME.Tickets"],
+  "purge": ["{localappdata}\\Generic Company Inc\\GenericCompany.Tickets"],
   "output": "dist/{name}-{version}-setup.exe"
 }

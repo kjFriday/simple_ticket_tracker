@@ -1,4 +1,13 @@
-// ==== ACME Inc. portfolio ===============================================
+// ==== Generic Company Inc. portfolio ====================================
+// Project: simple_ticket_tracker | File: src/host/assets.rs
+// About: ==== Generic Company Inc. portfolio ===============================================...
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
+// ==== Generic Company Inc. portfolio ===============================================
 // Project: simple_ticket_tracker | File: src/host/assets.rs
 // About: The page's files (index.html, the wasm build, the icon), served from the `www` folder...
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
@@ -90,7 +99,7 @@ mod tests {
 
     #[test]
     fn www_beside_the_exe_or_above_target() {
-        let tmp = std::env::temp_dir().join(format!("acme-assets-{}", std::process::id()));
+        let tmp = std::env::temp_dir().join(format!("generic-company-assets-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         for dir in ["installed", "project", "project/target/release"] {
             std::fs::create_dir_all(tmp.join(dir).join("www")).unwrap();
@@ -98,7 +107,7 @@ mod tests {
         for dir in ["installed", "project"] {
             std::fs::write(tmp.join(dir).join("www").join("index.html"), "").unwrap();
         }
-        let exe = "acme.exe";
+        let exe = "generic_company.exe";
         assert_eq!(www_for(&tmp.join("installed").join(exe)), tmp.join("installed").join("www"));
         let built = tmp.join("project").join("target").join("release");
         assert_eq!(www_for(&built.join(exe)), tmp.join("project").join("www"));
@@ -108,4 +117,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=d882cea80e0b3686ff069ad05b5fe911da348df9944cfd743e18ee1b6d30ea72 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=51c33e9f654ba07dc3224b6549298e8075a81dbe838f78f31480b49d3182f588 ====

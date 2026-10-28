@@ -1,4 +1,13 @@
-// ==== ACME Inc. portfolio ===============================================
+// ==== Generic Company Inc. portfolio ====================================
+// Project: simple_ticket_tracker | File: src/host/paths.rs
+// About: ==== Generic Company Inc. portfolio ===============================================...
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
+// ==== Generic Company Inc. portfolio ===============================================
 // Project: simple_ticket_tracker | File: src/host/paths.rs
 // About: Where the program keeps its files.
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
@@ -7,9 +16,9 @@
 // Reused code, if any, is mapped in PROVENANCE.md.
 // ========================================================================
 
-//! Where the program keeps its files. The shared database is the only link between the ACME
-//! programs; its path is, in order: --db, ACME_DB, the program's saved setting, then
-//! %LOCALAPPDATA%\ACME Inc\acme.db. The setting is %LOCALAPPDATA%\ACME Inc\<app id>\settings.json.
+//! Where the program keeps its files. The shared database is the only link between the Generic Company
+//! programs; its path is, in order: --db, GENERIC_COMPANY_DB, the program's saved setting, then
+//! %LOCALAPPDATA%\Generic Company Inc\generic_company.db. The setting is %LOCALAPPDATA%\Generic Company Inc\<app id>\settings.json.
 
 use serde_json::{Map, Value};
 use std::path::{Path, PathBuf};
@@ -29,11 +38,11 @@ pub fn local_appdata(env: Env) -> PathBuf {
 }
 
 pub fn base_dir(env: Env) -> PathBuf {
-    local_appdata(env).join("ACME Inc")
+    local_appdata(env).join("Generic Company Inc")
 }
 
 pub fn default_db(env: Env) -> PathBuf {
-    base_dir(env).join("acme.db")
+    base_dir(env).join("generic_company.db")
 }
 
 pub fn data_dir(app_id: &str, env: Env) -> PathBuf {
@@ -75,7 +84,7 @@ fn absolute(p: &str) -> PathBuf {
 
 pub fn resolve_db(flag: Option<&str>, app_id: &str, env: Env) -> PathBuf {
     let saved = load_settings(app_id, env).get("db").and_then(Value::as_str).map(String::from);
-    [flag.map(String::from), env("ACME_DB"), saved]
+    [flag.map(String::from), env("GENERIC_COMPANY_DB"), saved]
         .into_iter()
         .flatten()
         .map(|s| s.trim().to_string())
@@ -90,7 +99,7 @@ mod tests {
     use std::collections::HashMap;
 
     fn temp(name: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("acme-paths-{name}-{}", std::process::id()));
+        let d = std::env::temp_dir().join(format!("generic-company-paths-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
         std::fs::create_dir_all(&d).unwrap();
         d
@@ -105,15 +114,15 @@ mod tests {
             move |k: &str| vars.get(k).cloned().filter(|v| !v.is_empty())
         };
         let e = env_of(&vars);
-        assert_eq!(resolve_db(None, "ACME.T", &e), dir.join("ACME Inc").join("acme.db"));
+        assert_eq!(resolve_db(None, "GenericCompany.T", &e), dir.join("Generic Company Inc").join("generic_company.db"));
         let saved = dir.join("saved.db").display().to_string();
-        save_settings("ACME.T", &e, Map::from_iter([("db".to_string(), Value::from(saved.clone()))])).unwrap();
-        assert_eq!(resolve_db(None, "ACME.T", &e), PathBuf::from(&saved));
-        vars.insert("ACME_DB".into(), dir.join("env.db").display().to_string());
+        save_settings("GenericCompany.T", &e, Map::from_iter([("db".to_string(), Value::from(saved.clone()))])).unwrap();
+        assert_eq!(resolve_db(None, "GenericCompany.T", &e), PathBuf::from(&saved));
+        vars.insert("GENERIC_COMPANY_DB".into(), dir.join("env.db").display().to_string());
         let e = env_of(&vars);
-        assert!(resolve_db(None, "ACME.T", &e).ends_with("env.db"));
-        assert!(resolve_db(Some("  "), "ACME.T", &e).ends_with("env.db"));
-        assert!(resolve_db(Some(&dir.join("flag.db").display().to_string()), "ACME.T", &e).ends_with("flag.db"));
+        assert!(resolve_db(None, "GenericCompany.T", &e).ends_with("env.db"));
+        assert!(resolve_db(Some("  "), "GenericCompany.T", &e).ends_with("env.db"));
+        assert!(resolve_db(Some(&dir.join("flag.db").display().to_string()), "GenericCompany.T", &e).ends_with("flag.db"));
         let _ = std::fs::remove_dir_all(dir);
     }
 
@@ -122,16 +131,16 @@ mod tests {
         let dir = temp("junk");
         let p = dir.display().to_string();
         let e = move |k: &str| (k == "LOCALAPPDATA").then(|| p.clone());
-        std::fs::create_dir_all(data_dir("ACME.T", &e)).unwrap();
-        std::fs::write(settings_path("ACME.T", &e), "{not json").unwrap();
-        assert!(load_settings("ACME.T", &e).is_empty());
-        save_settings("ACME.T", &e, Map::from_iter([("db".into(), "a".into()), ("theme".into(), "dark".into())])).unwrap();
-        save_settings("ACME.T", &e, Map::from_iter([("db".into(), "b".into())])).unwrap();
-        let s = load_settings("ACME.T", &e);
+        std::fs::create_dir_all(data_dir("GenericCompany.T", &e)).unwrap();
+        std::fs::write(settings_path("GenericCompany.T", &e), "{not json").unwrap();
+        assert!(load_settings("GenericCompany.T", &e).is_empty());
+        save_settings("GenericCompany.T", &e, Map::from_iter([("db".into(), "a".into()), ("theme".into(), "dark".into())])).unwrap();
+        save_settings("GenericCompany.T", &e, Map::from_iter([("db".into(), "b".into())])).unwrap();
+        let s = load_settings("GenericCompany.T", &e);
         assert_eq!((s["db"].as_str(), s["theme"].as_str(), s["version"].as_i64()), (Some("b"), Some("dark"), Some(1)));
-        assert_eq!(std::fs::read_dir(data_dir("ACME.T", &e)).unwrap().count(), 1);
+        assert_eq!(std::fs::read_dir(data_dir("GenericCompany.T", &e)).unwrap().count(), 1);
         let _ = std::fs::remove_dir_all(dir);
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=fe11108cddd0813da9c24d227890b8b4361eddc1f59a81f00e9621483db762e7 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=b467ab99caa031cb56c707efa1137e3597e88f298a5fb1d3ac5c8a55d13f2f25 ====

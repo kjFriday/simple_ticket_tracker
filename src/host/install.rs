@@ -1,4 +1,13 @@
-// ==== ACME Inc. portfolio ===============================================
+// ==== Generic Company Inc. portfolio ====================================
+// Project: simple_ticket_tracker | File: src/host/install.rs
+// About: ==== Generic Company Inc. portfolio ===============================================...
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
+// ==== Generic Company Inc. portfolio ===============================================
 // Project: simple_ticket_tracker | File: src/host/install.rs
 // About: Install or uninstall the program for the current user (no admin rights): the exe, its...
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
@@ -8,14 +17,14 @@
 // ========================================================================
 
 //! Install or uninstall the program for the current user (no admin rights): the exe, its `www` page and
-//! icon go to %LOCALAPPDATA%\Programs\ACME Inc\<name>\ with an install.json marker; a Start-menu shortcut
+//! icon go to %LOCALAPPDATA%\Programs\Generic Company Inc\<name>\ with an install.json marker; a Start-menu shortcut
 //! (and optionally a desktop one) and an uninstall entry under HKCU\...\Uninstall\<app id> make it show
 //! in the Start menu and Apps & features. Uninstall removes all of it and never the shared database. An
-//! install that a setup made by ACME Wizard Maker left (its marker names the installer), here or in the folder
+//! install that a setup made by Generic Company Wizard Maker left (its marker names the installer), here or in the folder
 //! its uninstall entry names, is removed by its own uninstall.exe instead, which keeps the files changed
 //! since: see `located` and `wizard`.
 //!
-//! Same three layers as the other ACME programs: `plan` (pure), `script` (pure PowerShell, fed on stdin)
+//! Same three layers as the other Generic Company programs: `plan` (pure), `script` (pure PowerShell, fed on stdin)
 //! and `install`/`uninstall` with a replaceable runner. A sandbox root keeps everything under it, with
 //! the registry as root\registry.json.
 
@@ -25,7 +34,7 @@ use std::process::{Command, Stdio};
 
 pub const UNINSTALL_KEY: &str = r"HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall";
 pub const MARKER: &str = "install.json";
-/// What a setup made by ACME Wizard Maker leaves in the install folder.
+/// What a setup made by Generic Company Wizard Maker leaves in the install folder.
 pub const WIZARD_UNINSTALLER: &str = "uninstall.exe";
 /// That uninstaller's exit code when the user cancels it in its window.
 pub const CANCELLED: i32 = 3;
@@ -78,14 +87,14 @@ pub struct Plan {
 pub fn locations(env: &dyn Fn(&str) -> Option<String>, root: Option<&Path>) -> (PathBuf, PathBuf, PathBuf, Option<PathBuf>) {
     if let Some(root) = root {
         let root = std::path::absolute(root).unwrap_or_else(|_| root.to_path_buf());
-        return (root.join("Programs").join("ACME Inc"), root.join("Start Menu").join("ACME Inc"), root.join("Desktop"), Some(root.join("registry.json")));
+        return (root.join("Programs").join("Generic Company Inc"), root.join("Start Menu").join("Generic Company Inc"), root.join("Desktop"), Some(root.join("registry.json")));
     }
     let home = env("USERPROFILE").map(PathBuf::from).unwrap_or_default();
     let local = env("LOCALAPPDATA").map(PathBuf::from).unwrap_or_else(|| home.join("AppData").join("Local"));
     let roaming = env("APPDATA").map(PathBuf::from).unwrap_or_else(|| home.join("AppData").join("Roaming"));
     (
-        local.join("Programs").join("ACME Inc"),
-        roaming.join("Microsoft").join("Windows").join("Start Menu").join("Programs").join("ACME Inc"),
+        local.join("Programs").join("Generic Company Inc"),
+        roaming.join("Microsoft").join("Windows").join("Start Menu").join("Programs").join("Generic Company Inc"),
         home.join("Desktop"),
         None,
     )
@@ -334,7 +343,7 @@ pub fn uninstall(p: &Plan, run: Runner, running: &Path, purge: Option<&Path>) ->
     Ok((true, None))
 }
 
-/// The uninstaller of an install that a setup made by ACME Wizard Maker left in the install folder (its
+/// The uninstaller of an install that a setup made by Generic Company Wizard Maker left in the install folder (its
 /// marker names this program and an installer), or None for this program's own install. Such an install
 /// is removed by that uninstaller, which takes away only the files still as installed.
 pub fn wizard(p: &Plan) -> Option<PathBuf> {
@@ -357,7 +366,7 @@ pub fn install_location(p: &Plan, read: Reader) -> Result<String, String> {
 }
 
 /// `p` aimed at the install its uninstall entry names when that lies outside its install folder: a setup
-/// made by ACME Wizard Maker installs where the user picks. Only such an install (see `wizard`) is handed
+/// made by Generic Company Wizard Maker installs where the user picks. Only such an install (see `wizard`) is handed
 /// on; any other folder still there is refused, so its entry and shortcuts are never cleared.
 pub fn located(p: &Plan, read: Reader) -> Result<Plan, String> {
     let location = PathBuf::from(install_location(p, read)?);
@@ -436,11 +445,11 @@ mod tests {
     use std::cell::RefCell;
 
     fn setup(tag: &str) -> (PathBuf, PathBuf, PathBuf) {
-        let dir = std::env::temp_dir().join(format!("acme-install-{tag}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("generic-company-install-{tag}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         let build = dir.join("build");
         std::fs::create_dir_all(build.join("www").join("pkg")).unwrap();
-        std::fs::write(build.join("acme-test.exe"), b"MZ fake").unwrap();
+        std::fs::write(build.join("generic-company-test.exe"), b"MZ fake").unwrap();
         std::fs::write(build.join("www").join("index.html"), b"<html>").unwrap();
         std::fs::write(build.join("www").join("pkg").join("a.wasm"), b"\0asm").unwrap();
         std::fs::write(build.join("www").join("pkg").join(".gitignore"), b"*").unwrap();
@@ -449,12 +458,12 @@ mod tests {
 
     fn program(build: &Path) -> Program<'static> {
         Program {
-            app_id: "ACME.Test",
-            name: "ACME Test App",
+            app_id: "GenericCompany.Test",
+            name: "Generic Company Test App",
             version: "0.2.0",
-            publisher: "ACME Inc. (fictional)",
-            exe: build.join("acme-test.exe"),
-            exe_name: "acme-test.exe",
+            publisher: "Generic Company Inc. (fictional)",
+            exe: build.join("generic-company-test.exe"),
+            exe_name: "generic-company-test.exe",
             www: build.join("www"),
             icon: &[0, 0, 1, 0],
         }
@@ -468,7 +477,7 @@ mod tests {
     fn plan_and_script() {
         let (dir, build, root) = setup("plan");
         let p = plan(&program(&build), &none, Some(&root), true, 4096, "20261017");
-        assert_eq!(p.install_dir, std::path::absolute(&root).unwrap().join("Programs").join("ACME Inc").join("ACME Test App"));
+        assert_eq!(p.install_dir, std::path::absolute(&root).unwrap().join("Programs").join("Generic Company Inc").join("Generic Company Test App"));
         assert_eq!(p.shortcuts.len(), 2);
         assert!(p.registry.contains(&("DisplayVersion", Reg::Text("0.2.0".into()))));
         assert!(p.registry.contains(&("EstimatedSize", Reg::DWord(5))));
@@ -477,9 +486,9 @@ mod tests {
         let vars = |k: &str| (k == "LOCALAPPDATA").then(|| r"C:\O'Brien".to_string());
         let real = plan(&program(&build), &vars, None, false, 1, "20261017");
         let s = script(&real, false);
-        assert!(s.contains(r"'C:\O''Brien\Programs\ACME Inc\ACME Test App\app.ico,0'"));
+        assert!(s.contains(r"'C:\O''Brien\Programs\Generic Company Inc\Generic Company Test App\app.ico,0'"));
         assert!(s.contains("-Name 'NoModify' -Value '1' -PropertyType DWord"));
-        assert!(script(&real, true).contains(r"Remove-Item -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ACME.Test'"));
+        assert!(script(&real, true).contains(r"Remove-Item -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\GenericCompany.Test'"));
         let _ = std::fs::remove_dir_all(dir);
     }
 
@@ -493,16 +502,16 @@ mod tests {
             Ok(())
         };
         std::fs::create_dir_all(&root).unwrap();
-        std::fs::write(root.join("acme.db"), b"").unwrap();
+        std::fs::write(root.join("generic_company.db"), b"").unwrap();
         install(&p, &run).unwrap();
         install(&p, &run).unwrap();
         assert!(p.install_dir.join("www").join("pkg").join("a.wasm").is_file());
         assert!(!p.install_dir.join("www").join("pkg").join(".gitignore").exists());
         let reg: Value = serde_json::from_str(&std::fs::read_to_string(p.registry_file.as_ref().unwrap()).unwrap()).unwrap();
         assert_eq!(reg[&p.registry_key]["DisplayVersion"], "0.2.0");
-        let (removed, later) = uninstall(&p, &run, &build.join("acme-test.exe"), None).unwrap();
+        let (removed, later) = uninstall(&p, &run, &build.join("generic-company-test.exe"), None).unwrap();
         assert!(removed && later.is_none() && !p.install_dir.exists());
-        assert!(root.join("acme.db").exists());
+        assert!(root.join("generic_company.db").exists());
         assert_eq!(*scripts.borrow(), 3);
         let _ = std::fs::remove_dir_all(dir);
     }
@@ -518,23 +527,23 @@ mod tests {
         assert!(removed);
         assert_eq!(later.as_deref(), Some(p.install_dir.as_path()));
         let left: Vec<_> = std::fs::read_dir(&p.install_dir).unwrap().flatten().map(|e| e.file_name()).collect();
-        assert_eq!(left, vec![std::ffi::OsString::from("acme-test.exe")]);
-        std::fs::write(p.install_dir.join(MARKER), r#"{"app_id":"ACME.Other"}"#).unwrap();
+        assert_eq!(left, vec![std::ffi::OsString::from("generic-company-test.exe")]);
+        std::fs::write(p.install_dir.join(MARKER), r#"{"app_id":"GenericCompany.Other"}"#).unwrap();
         assert!(install(&p, &ok).is_err());
-        assert!(uninstall(&p, &ok, &build.join("acme-test.exe"), None).is_err());
+        assert!(uninstall(&p, &ok, &build.join("generic-company-test.exe"), None).is_err());
         let _ = std::fs::remove_dir_all(dir);
     }
 
-    /// What a setup made by ACME Wizard Maker leaves: its files, uninstall.exe and a marker with sha256 and
+    /// What a setup made by Generic Company Wizard Maker leaves: its files, uninstall.exe and a marker with sha256 and
     /// installer; then notes.txt changes, as a user would change it.
     fn wizard_install(p: &Plan, app_id: &str) {
         std::fs::create_dir_all(&p.install_dir).unwrap();
-        let files = ["acme-test.exe", "notes.txt", "app.ico", WIZARD_UNINSTALLER];
+        let files = ["generic-company-test.exe", "notes.txt", "app.ico", WIZARD_UNINSTALLER];
         for f in files {
             std::fs::write(p.install_dir.join(f), b"as installed").unwrap();
         }
         let marker = json!({"app_id": app_id, "name": p.name, "version": p.version, "files": files, "shortcuts": [],
-            "sha256": {"notes.txt": "e3b0"}, "installer": "ACME Wizard Maker 0.1.0"});
+            "sha256": {"notes.txt": "e3b0"}, "installer": "Generic Company Wizard Maker 0.1.0"});
         std::fs::write(p.install_dir.join(MARKER), marker.to_string()).unwrap();
         std::fs::write(p.install_dir.join("notes.txt"), b"changed by the user").unwrap();
     }
@@ -547,9 +556,9 @@ mod tests {
         assert_eq!(wizard(&p), None);
         install(&p, &ok).unwrap();
         assert_eq!(wizard(&p), None, "the program's own install");
-        wizard_install(&p, "ACME.Other");
+        wizard_install(&p, "GenericCompany.Other");
         assert_eq!(wizard(&p), None, "never another program's uninstaller");
-        wizard_install(&p, "ACME.Test");
+        wizard_install(&p, "GenericCompany.Test");
         assert_eq!(wizard(&p), Some(p.install_dir.join("uninstall.exe")));
         assert!(uninstall_args(false, false, None).is_empty());
         let abs = std::path::absolute(&root).unwrap().display().to_string();
@@ -561,24 +570,24 @@ mod tests {
     fn run_uninstaller_keeps_changed_files_and_its_exit_code() {
         let (dir, build, root) = setup("uninstaller");
         let p = plan(&program(&build), &none, Some(&root), false, 1, "20261017");
-        wizard_install(&p, "ACME.Test");
+        wizard_install(&p, "GenericCompany.Test");
         let calls = RefCell::new(Vec::new());
         let busy = |exe: &Path, args: &[String]| -> Result<(i32, String), String> {
             calls.borrow_mut().push((exe.to_path_buf(), args.to_vec()));
-            Ok((4, "Setup or uninstall of ACME Test App is already running.".into()))
+            Ok((4, "Setup or uninstall of Generic Company Test App is already running.".into()))
         };
         let args = uninstall_args(true, false, Some(&root));
-        let (code, said) = run_uninstaller(&p, &build.join("acme-test.exe"), &args, &busy).unwrap();
+        let (code, said) = run_uninstaller(&p, &build.join("generic-company-test.exe"), &args, &busy).unwrap();
         assert!(code == 4 && said.contains("already running"));
         assert_eq!(*calls.borrow(), vec![(p.install_dir.join("uninstall.exe"), args.clone())]);
         assert_eq!(std::fs::read_to_string(p.install_dir.join("notes.txt")).unwrap(), "changed by the user");
         let cancel = |_: &Path, _: &[String]| -> Result<(i32, String), String> { Ok((CANCELLED, String::new())) };
-        assert_eq!(run_uninstaller(&p, &build.join("acme-test.exe"), &[], &cancel).unwrap(), (CANCELLED, "Uninstall cancelled.".to_string()));
+        assert_eq!(run_uninstaller(&p, &build.join("generic-company-test.exe"), &[], &cancel).unwrap(), (CANCELLED, "Uninstall cancelled.".to_string()));
         // run from inside the folder (in any case) it refuses, as it does with no wizard-made install
         let inside = PathBuf::from(p.exe_target.display().to_string().to_uppercase());
         assert!(run_uninstaller(&p, &inside, &[], &busy).is_err());
         let elsewhere = plan(&program(&build), &none, Some(&root.join("x")), false, 1, "20261017");
-        assert!(run_uninstaller(&elsewhere, &build.join("acme-test.exe"), &[], &busy).is_err());
+        assert!(run_uninstaller(&elsewhere, &build.join("generic-company-test.exe"), &[], &busy).is_err());
         assert_eq!(calls.borrow().len(), 1);
         let _ = std::fs::remove_dir_all(dir);
     }
@@ -601,7 +610,7 @@ mod tests {
         elsewhere.install_dir = std::path::absolute(&root).unwrap().join("Apps").join("Journal");
         entry(&p, &elsewhere.install_dir);
         assert_eq!(located(&p, &real).unwrap().install_dir, p.install_dir, "a stale entry");
-        wizard_install(&elsewhere, "ACME.Test");
+        wizard_install(&elsewhere, "GenericCompany.Test");
         let there = located(&p, &real).unwrap();
         assert_eq!(there.install_dir, elsewhere.install_dir);
         let calls = RefCell::new(Vec::new());
@@ -609,7 +618,7 @@ mod tests {
             calls.borrow_mut().push(exe.to_path_buf());
             Ok((0, String::new()))
         };
-        assert_eq!(run_uninstaller(&there, &build.join("acme-test.exe"), &[], &done).unwrap().0, 0);
+        assert_eq!(run_uninstaller(&there, &build.join("generic-company-test.exe"), &[], &done).unwrap().0, 0);
         assert_eq!(*calls.borrow(), vec![elsewhere.install_dir.join("uninstall.exe")]);
         let _ = std::fs::remove_dir_all(dir);
     }
@@ -622,7 +631,7 @@ mod tests {
         elsewhere.install_dir = std::path::absolute(&root).unwrap().join("Apps").join("Journal");
         entry(&p, &elsewhere.install_dir);
         let empty = |_: &str| -> Result<String, String> { Ok(String::new()) };
-        wizard_install(&elsewhere, "ACME.Other");
+        wizard_install(&elsewhere, "GenericCompany.Other");
         assert!(located(&p, &empty).is_err());
         std::fs::remove_file(elsewhere.install_dir.join(MARKER)).unwrap();
         assert!(located(&p, &empty).is_err());
@@ -637,14 +646,14 @@ mod tests {
         let folder = std::path::absolute(&root).unwrap().join("Apps").join("Journal");
         let mut elsewhere = p.clone();
         elsewhere.install_dir = folder.clone();
-        wizard_install(&elsewhere, "ACME.Test");
+        wizard_install(&elsewhere, "GenericCompany.Test");
         let scripts = RefCell::new(Vec::new());
         let read = |s: &str| -> Result<String, String> {
             scripts.borrow_mut().push(s.to_string());
             Ok(folder.display().to_string())
         };
         assert_eq!(located(&p, &read).unwrap().install_dir, folder);
-        assert!(scripts.borrow()[0].contains(r"Get-ItemProperty -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ACME.Test' -Name InstallLocation"));
+        assert!(scripts.borrow()[0].contains(r"Get-ItemProperty -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\GenericCompany.Test' -Name InstallLocation"));
         let relative = |_: &str| -> Result<String, String> { Ok("Apps".into()) };
         assert_eq!(located(&p, &relative).unwrap().install_dir, p.install_dir, "never a relative folder");
         let failed = |_: &str| -> Result<String, String> { Err("denied".into()) };
@@ -658,7 +667,7 @@ mod tests {
         assert_eq!(out, "M\u{f6}tley");
         let (dir, build, _) = setup("noentry");
         let mut p = plan(&program(&build), &none, None, false, 1, "20261017");
-        p.registry_key = format!(r"{UNINSTALL_KEY}\ACME.NoSuchProgram.Test");
+        p.registry_key = format!(r"{UNINSTALL_KEY}\GenericCompany.NoSuchProgram.Test");
         assert_eq!(install_location(&p, &read_powershell).unwrap(), "");
         let _ = std::fs::remove_dir_all(dir);
     }
@@ -667,8 +676,8 @@ mod tests {
     fn run_and_wait_returns_the_exit_code() {
         let args = ["/d", "/c", "echo kept & exit 4"].map(String::from);
         assert_eq!(run_and_wait(Path::new("cmd.exe"), &args).unwrap(), (4, "kept".to_string()));
-        assert!(run_and_wait(&std::env::temp_dir().join("acme-none").join("uninstall.exe"), &[]).is_err());
+        assert!(run_and_wait(&std::env::temp_dir().join("generic-company-none").join("uninstall.exe"), &[]).is_err());
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=6df42047db444061c5dba7d42fd1c1746520d2ca99b6bce05e82d9c4f7f1f46b ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=6c28c8c360cf30e358d9a4a72aa0f40bd8cb74741e2f1c97fa1c4f1ecc616fab ====

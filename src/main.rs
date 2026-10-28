@@ -1,22 +1,31 @@
-// ==== ACME Inc. portfolio ===============================================
+// ==== Generic Company Inc. portfolio ====================================
 // Project: simple_ticket_tracker | File: src/main.rs
-// About: acme-tickets: ACME Ticket Tracker as a desktop program (build with `--features desktop`).
+// About: ==== Generic Company Inc. portfolio ===============================================...
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
 // You may change this file under the AGPL-3.0. The stamp at the end marks
 // the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
 // Reused code, if any, is mapped in PROVENANCE.md.
 // ========================================================================
 
-//! acme-tickets: ACME Ticket Tracker as a desktop program (build with `--features desktop`).
+// ==== Generic Company Inc. portfolio ===============================================
+// Project: simple_ticket_tracker | File: src/main.rs
+// About: generic-company-tickets: Generic Company Ticket Tracker as a desktop program (build with `--features desktop`).
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
+//! generic-company-tickets: Generic Company Ticket Tracker as a desktop program (build with `--features desktop`).
 #![windows_subsystem = "windows"]
 
 use ticket_tracker::host::{self, api::Tables, Spec};
 
 fn main() {
     host::main(Spec {
-        app_id: "ACME.Tickets",
-        name: "ACME Ticket Tracker",
-        exe_name: "acme-tickets.exe",
+        app_id: "GenericCompany.Tickets",
+        name: "Generic Company Ticket Tracker",
+        exe_name: "generic-company-tickets.exe",
         version: env!("CARGO_PKG_VERSION"),
         width: 1200.0,
         height: 800.0,
@@ -35,4 +44,4 @@ fn main() {
     });
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=2fcb893d9693471d565f6076a130ecf0d6ecbf6dd39f9d5770daada3281c8c8a ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=698970afb2ecb6732346f0ff4792381d91c0de1fc9e5f946e21188f8d54afe3a ====

@@ -1,4 +1,13 @@
-// ==== ACME Inc. portfolio ===============================================
+// ==== Generic Company Inc. portfolio ====================================
+// Project: simple_ticket_tracker | File: tests/icon.rs
+// About: ==== Generic Company Inc. portfolio ===============================================...
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
+// ==== Generic Company Inc. portfolio ===============================================
 // Project: simple_ticket_tracker | File: tests/icon.rs
 // About: The pixel icon: app.ico holds 16/32/48 px as BMP and 256 px as PNG, the BMP sizes are the...
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
@@ -72,4 +81,4 @@ fn credited() {
     assert!(readme.contains("Creative Commons Attribution 2.5") && readme.contains("Mark James"));
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=7ecd99000def5e4ba712f160a7a955e5564f292b31e7de6a4b13410a38c4cead ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=9f87a30f287c6f032ceee130abb6f4659c873b83d511cbe7166ff0d9f57045c4 ====

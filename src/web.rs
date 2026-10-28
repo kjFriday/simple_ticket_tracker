@@ -1,4 +1,13 @@
-// ==== ACME Inc. portfolio ===============================================
+// ==== Generic Company Inc. portfolio ====================================
+// Project: simple_ticket_tracker | File: src/web.rs
+// About: ==== Generic Company Inc. portfolio ===============================================...
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
+// ==== Generic Company Inc. portfolio ===============================================
 // Project: simple_ticket_tracker | File: src/web.rs
 // About: Page wiring.
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
@@ -75,7 +84,7 @@ pub fn start() -> Result<(), JsValue> {
     APP.with(|a| {
         *a.borrow_mut() = Some(App { source: Source::Mock, hub: hub.clone(), store: Store::new(tickets), customers, employees, filter: Filter::default() })
     });
-    el("version").set_text_content(Some(concat!("ACME Ticket Tracker ", env!("CARGO_PKG_VERSION"))));
+    el("version").set_text_content(Some(concat!("Generic Company Ticket Tracker ", env!("CARGO_PKG_VERSION"))));
     wire()?;
     if query_param("source").as_deref() == Some("mock") {
         use_mock("Mock snapshot");
@@ -198,7 +207,7 @@ fn now_stamp() -> String {
 /// Ask for another database file; the program checks it, saves the choice and the page reloads.
 async fn change_db() {
     let win = web_sys::window().unwrap();
-    let Ok(Some(path)) = win.prompt_with_message("Path of the shared ACME database (acme.db):") else { return };
+    let Ok(Some(path)) = win.prompt_with_message("Path of the shared Generic Company database (generic_company.db):") else { return };
     if path.trim().is_empty() {
         return;
     }
@@ -466,4 +475,4 @@ fn wire() -> Result<(), JsValue> {
     Ok(())
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=5ababdd3380c75f8a74630d1bd41d224696ace238308db37450b689cb5531bc9 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=fbf40e0585b3ccc0e542a9d66c342f2aca3e7a97783833d61c794a82f3205fde ====

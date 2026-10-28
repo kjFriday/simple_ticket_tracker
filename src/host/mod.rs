@@ -1,4 +1,13 @@
-// ==== ACME Inc. portfolio ===============================================
+// ==== Generic Company Inc. portfolio ====================================
+// Project: simple_ticket_tracker | File: src/host/mod.rs
+// About: ==== Generic Company Inc. portfolio ===============================================...
+// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
+// You may change this file under the AGPL-3.0. The stamp at the end marks
+// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// Reused code, if any, is mapped in PROVENANCE.md.
+// ========================================================================
+
+// ==== Generic Company Inc. portfolio ===============================================
 // Project: simple_ticket_tracker | File: src/host/mod.rs
 // About: The desktop program: a native window (tao) with Edge WebView2 (wry) showing the wasm page...
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
@@ -9,7 +18,7 @@
 
 //! The desktop program: a native window (tao) with Edge WebView2 (wry) showing the wasm page from
 //! `www/`. The page's requests to `/api/...` are answered in-process from the shared SQLite file through
-//! the custom protocol `acme://` (no network port at all); `/host/...` covers what only the program can
+//! the custom protocol `generic_company://` (no network port at all); `/host/...` covers what only the program can
 //! do (show or change the database path). Command line: see `main`.
 
 pub mod api;
@@ -28,7 +37,7 @@ use tao::window::{Icon, WindowBuilder};
 use wry::http::{Request, Response};
 use wry::{WebContext, WebViewBuilder};
 
-/// Everything that differs between the ACME Rust programs.
+/// Everything that differs between the Generic Company Rust programs.
 pub struct Spec {
     pub app_id: &'static str,
     pub name: &'static str,
@@ -44,11 +53,11 @@ pub struct Spec {
     pub smoke_count: &'static str,
 }
 
-pub const PUBLISHER: &str = "ACME Inc. (fictional)";
+pub const PUBLISHER: &str = "Generic Company Inc. (fictional)";
 pub const CREDIT: &str = "Icon: Silk by Mark James (famfamfam.com/lab/icons/silk), CC BY 2.5 (creativecommons.org/licenses/by/2.5), enlarged by nearest-neighbour.";
 
 pub fn title(spec: &Spec) -> String {
-    format!("ACME Inc. — {} {}", spec.name, spec.version)
+    format!("Generic Company Inc. — {} {}", spec.name, spec.version)
 }
 
 #[derive(Default)]
@@ -141,7 +150,7 @@ fn run_installer(o: &Options, spec: &Spec) -> Result<(i32, Option<PathBuf>), Str
     if o.uninstall {
         let plan = install::located(&plan, &install::read_powershell)?;
         if install::wizard(&plan).is_some() {
-            // a setup made by ACME Wizard Maker installed it: its uninstaller keeps the files changed since
+            // a setup made by Generic Company Wizard Maker installed it: its uninstaller keeps the files changed since
             let args = install::uninstall_args(o.quiet, o.purge, o.root.as_deref());
             let (code, said) = install::run_uninstaller(&plan, &exe, &args, &install::run_and_wait)?;
             if code != 0 && code != install::CANCELLED {
@@ -161,7 +170,7 @@ fn run_installer(o: &Options, spec: &Spec) -> Result<(i32, Option<PathBuf>), Str
         return Ok((0, later));
     }
     install::install(&plan, &install::powershell)?;
-    tell(o, spec, &format!("{} {} installed in {}. Find it in the Start menu under ACME Inc.", spec.name, spec.version, plan.install_dir.display()));
+    tell(o, spec, &format!("{} {} installed in {}. Find it in the Start menu under Generic Company Inc.", spec.name, spec.version, plan.install_dir.display()));
     Ok((0, None))
 }
 
@@ -274,7 +283,7 @@ pub fn main(spec: Spec) {
     let db = paths::resolve_db(o.db.as_deref(), spec.app_id, &paths::real_env);
     let state = Arc::new(Mutex::new(choose(&db, &spec, o.mock)));
     if let Err(e) = open_window(Arc::new(spec), state, o.smoke) {
-        message_box("ACME", &e);
+        message_box("Generic Company", &e);
         std::process::exit(1);
     }
 }
@@ -293,11 +302,11 @@ fn open_window(spec: Arc<Spec>, state: Arc<Mutex<State>>, smoke: Option<PathBuf>
     let proxy = event_loop.create_proxy();
     let (spec2, state2) = (spec.clone(), state.clone());
     let webview = WebViewBuilder::new_with_web_context(&mut context)
-        .with_custom_protocol("acme".into(), move |_id, req| serve(&spec2, &state2, &www, req))
+        .with_custom_protocol("generic_company".into(), move |_id, req| serve(&spec2, &state2, &www, req))
         .with_ipc_handler(move |req: Request<String>| {
             let _ = proxy.send_event(UserEvent::Report(req.into_body()));
         })
-        .with_url("acme://localhost/index.html")
+        .with_url("generic_company://localhost/index.html")
         .build(&window)
         .map_err(|e| e.to_string())?;
     if smoke.is_some() {
@@ -359,4 +368,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=eca5d7c308a0cf273cb3445a8b4959a28bc038016a5c920017da239f0ef87808 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=02324f6f4a14bcb58218e60b2fbaf5eaa131b7eb595bdb438e02bb7fb5a5adbe ====
