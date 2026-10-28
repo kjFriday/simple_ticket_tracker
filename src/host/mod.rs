@@ -18,7 +18,7 @@
 
 //! The desktop program: a native window (tao) with Edge WebView2 (wry) showing the wasm page from
 //! `www/`. The page's requests to `/api/...` are answered in-process from the shared SQLite file through
-//! the custom protocol `generic_company://` (no network port at all); `/host/...` covers what only the program can
+//! the custom protocol `generic-company://` (no network port at all); `/host/...` covers what only the program can
 //! do (show or change the database path). Command line: see `main`.
 
 pub mod api;
@@ -55,6 +55,9 @@ pub struct Spec {
 
 pub const PUBLISHER: &str = "Generic Company Inc. (fictional)";
 pub const CREDIT: &str = "Icon: Silk by Mark James (famfamfam.com/lab/icons/silk), CC BY 2.5 (creativecommons.org/licenses/by/2.5), enlarged by nearest-neighbour.";
+/// The window's own protocol. A URI scheme may only hold letters, digits, `+`, `-` and `.`: wry turns each
+/// request back into a `SCHEME://` URI and answers 400, before `serve` runs, when that does not parse.
+pub const SCHEME: &str = "generic-company";
 
 pub fn title(spec: &Spec) -> String {
     format!("Generic Company Inc. — {} {}", spec.name, spec.version)
@@ -302,11 +305,11 @@ fn open_window(spec: Arc<Spec>, state: Arc<Mutex<State>>, smoke: Option<PathBuf>
     let proxy = event_loop.create_proxy();
     let (spec2, state2) = (spec.clone(), state.clone());
     let webview = WebViewBuilder::new_with_web_context(&mut context)
-        .with_custom_protocol("generic_company".into(), move |_id, req| serve(&spec2, &state2, &www, req))
+        .with_custom_protocol(SCHEME.into(), move |_id, req| serve(&spec2, &state2, &www, req))
         .with_ipc_handler(move |req: Request<String>| {
             let _ = proxy.send_event(UserEvent::Report(req.into_body()));
         })
-        .with_url("generic_company://localhost/index.html")
+        .with_url(format!("{SCHEME}://localhost/index.html"))
         .build(&window)
         .map_err(|e| e.to_string())?;
     if smoke.is_some() {
@@ -366,6 +369,13 @@ mod tests {
         assert_eq!(d.len(), 8);
         assert!(d.starts_with("20") && d[4..6].parse::<u32>().unwrap() <= 12);
     }
+
+    #[test]
+    fn scheme_makes_a_valid_uri() {
+        let uri = format!("{SCHEME}://localhost/index.html");
+        assert!(wry::http::Uri::try_from(uri.as_str()).is_ok(), "{uri}");
+        assert!(wry::http::Uri::try_from("generic_company://localhost/index.html").is_err());
+    }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=02324f6f4a14bcb58218e60b2fbaf5eaa131b7eb595bdb438e02bb7fb5a5adbe ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=86606f8101b9b757ec9039322a9a159a6a67c987414d15c71bd5e2a20e45e60c ====

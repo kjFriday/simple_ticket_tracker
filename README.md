@@ -9,7 +9,7 @@ fictional.
 - **Shared database:** the window opens the Generic Company database **by path**: `--db PATH`, the `GENERIC_COMPANY_DB`
   environment variable, the file chosen with **Database…**, or `%LOCALAPPDATA%\Generic Company Inc\generic_company.db`. Every
   change is a real insert/update/delete on its `tickets` table, answered in-process with the CRUD hub's
-  API contract (paging, `X-Total-Count`, 400/404/409) through the window's own `generic_company://` protocol: no
+  API contract (paging, `X-Total-Count`, 400/404/409) through the window's own `generic-company://` protocol: no
   network port, no other program needed. The status bar shows each call and its answer.
 - **Mock snapshot:** with no database (or `--mock`, or *Data → Mock snapshot*) the page runs on the
   bundled `mock/` snapshot (400 tickets); edits stay in the page.
@@ -80,7 +80,7 @@ in-memory database built from `mock/schema.sql`, file serving, the installer and
 | `src/core/validate.rs` | Form → JSON; the same text cleaning as the hub's `textsafe` |
 | `src/core/render.rs` | Board and picker HTML, escaped |
 | `src/web.rs` | DOM, events, `fetch` to `/api` (paged with `?limit=500&offset=N`) |
-| `src/host/` | The desktop program: window, `generic_company://` protocol, API over SQLite, installer, settings |
+| `src/host/` | The desktop program: window, `generic-company://` protocol, API over SQLite, installer, settings |
 | `src/main.rs` | `generic-company-tickets.exe` |
 | `www/` | `index.html`, `style.css`, `main.js`, `favicon.png`; the wasm build writes `www/pkg/` |
 | `icon/` | The pixel icon and its credits |
