@@ -1,14 +1,5 @@
 // ==== Generic Company Inc. portfolio ====================================
 // Project: simple_ticket_tracker | File: src/host/mod.rs
-// About: ==== Generic Company Inc. portfolio ===============================================...
-// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
-// You may change this file under the AGPL-3.0. The stamp at the end marks
-// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
-// Reused code, if any, is mapped in PROVENANCE.md.
-// ========================================================================
-
-// ==== Generic Company Inc. portfolio ===============================================
-// Project: simple_ticket_tracker | File: src/host/mod.rs
 // About: The desktop program: a native window (tao) with Edge WebView2 (wry) showing the wasm page...
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
 // You may change this file under the AGPL-3.0. The stamp at the end marks
@@ -378,4 +369,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=86606f8101b9b757ec9039322a9a159a6a67c987414d15c71bd5e2a20e45e60c ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=5a1fc009beba3c3358707cfd16205937a147f0b66786ad696a48027c8f2f0956 ====

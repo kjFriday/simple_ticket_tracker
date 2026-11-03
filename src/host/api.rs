@@ -1,14 +1,5 @@
 // ==== Generic Company Inc. portfolio ====================================
 // Project: simple_ticket_tracker | File: src/host/api.rs
-// About: ==== Generic Company Inc. portfolio ===============================================...
-// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
-// You may change this file under the AGPL-3.0. The stamp at the end marks
-// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
-// Reused code, if any, is mapped in PROVENANCE.md.
-// ========================================================================
-
-// ==== Generic Company Inc. portfolio ===============================================
-// Project: simple_ticket_tracker | File: src/host/api.rs
 // About: The page's data API, answered from the shared SQLite file with the CRUD hub's contract...
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
 // You may change this file under the AGPL-3.0. The stamp at the end marks
@@ -293,4 +284,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=eedf84fc6b47b4abd4c4f188241a5f21371ae1a2f2f445508db0dc425692af41 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=9ce8c92ad6e76c7ccb1fa668507eb83e9ee102ea7db8458c32169135c907d808 ====

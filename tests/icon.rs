@@ -1,14 +1,5 @@
 // ==== Generic Company Inc. portfolio ====================================
 // Project: simple_ticket_tracker | File: tests/icon.rs
-// About: ==== Generic Company Inc. portfolio ===============================================...
-// Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
-// You may change this file under the AGPL-3.0. The stamp at the end marks
-// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
-// Reused code, if any, is mapped in PROVENANCE.md.
-// ========================================================================
-
-// ==== Generic Company Inc. portfolio ===============================================
-// Project: simple_ticket_tracker | File: tests/icon.rs
 // About: The pixel icon: app.ico holds 16/32/48 px as BMP and 256 px as PNG, the BMP sizes are the...
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
 // You may change this file under the AGPL-3.0. The stamp at the end marks
@@ -81,4 +72,4 @@ fn credited() {
     assert!(readme.contains("Creative Commons Attribution 2.5") && readme.contains("Mark James"));
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=9f87a30f287c6f032ceee130abb6f4659c873b83d511cbe7166ff0d9f57045c4 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=8f90d0e3be68b146bb0574d93569ad99abcb9d99f730cb659bd6fa10f90fafb1 ====
