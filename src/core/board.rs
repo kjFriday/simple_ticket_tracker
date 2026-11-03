@@ -19,7 +19,9 @@ pub struct Filter {
 }
 
 impl Filter {
-    pub fn matches(&self, t: &Ticket, people: &[Person]) -> bool {
+    /// Whether `t` passes: the set ids must match, and the text (trimmed, any case) must occur in the title, the
+    /// body or the customer's name (looked up in `customers`), or equal `#id`.
+    pub fn matches(&self, t: &Ticket, customers: &[Person]) -> bool {
         if self.assignee.is_some() && t.assignee_id != self.assignee {
             return false;
         }
@@ -32,7 +34,7 @@ impl Filter {
         }
         let customer = t
             .customer_id
-            .and_then(|id| people.iter().find(|p| p.id == id))
+            .and_then(|id| customers.iter().find(|p| p.id == id))
             .map(|p| p.name.to_lowercase())
             .unwrap_or_default();
         t.title.to_lowercase().contains(&q)
@@ -123,7 +125,7 @@ mod tests {
     #[test]
     fn filters_by_assignee_text_and_customer_name() {
         let ts = sample();
-        let people = vec![Person {
+        let customers = vec![Person {
             id: 1,
             name: "Maria Garcia".into(),
             role: None,
@@ -134,22 +136,22 @@ mod tests {
             assignee: Some(10),
             ..Default::default()
         };
-        assert_eq!(ts.iter().filter(|t| f.matches(t, &people)).count(), 2);
+        assert_eq!(ts.iter().filter(|t| f.matches(t, &customers)).count(), 2);
         let f = Filter {
             text: "  REFUND ".into(),
             ..Default::default()
         };
-        assert_eq!(ts.iter().filter(|t| f.matches(t, &people)).count(), 1);
+        assert_eq!(ts.iter().filter(|t| f.matches(t, &customers)).count(), 1);
         let f = Filter {
             text: "garcia".into(),
             ..Default::default()
         };
-        assert_eq!(ts.iter().filter(|t| f.matches(t, &people)).count(), 4);
+        assert_eq!(ts.iter().filter(|t| f.matches(t, &customers)).count(), 4);
         let f = Filter {
             text: "#3".into(),
             ..Default::default()
         };
-        assert_eq!(ts.iter().filter(|t| f.matches(t, &people)).count(), 1);
+        assert_eq!(ts.iter().filter(|t| f.matches(t, &customers)).count(), 1);
     }
 
     #[test]
@@ -165,4 +167,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=31db2716ffefbd1ccc9f75d443121fe2ee99d01c8d8f1695310573505d19a4ff ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=25fad0a0672d2999e9c7d8fa39830d804a1346539f4a9cec973e7d4f92b0c972 ====

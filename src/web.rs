@@ -28,18 +28,21 @@ use web_sys::{
 const MOCK_TICKETS: &str = include_str!("../mock/tickets.json");
 const MOCK_CUSTOMERS: &str = include_str!("../mock/customers.json");
 const MOCK_EMPLOYEES: &str = include_str!("../mock/employees.json");
-const API: &str = ""; // same origin: the desktop program answers /api/... from the shared database
+const API_ORIGIN: &str = ""; // same origin: the desktop program answers /api/... from the shared database
 const PAGE: usize = 500; // the largest ?limit
+/// `#source`'s option for the shared database in index.html (its value dates from when the CRUD hub served /api).
+const DB_OPTION: &str = "hub";
 
+/// Where the tickets come from: the embedded mock snapshot, or the shared database through `/api`.
 #[derive(Clone, Copy, PartialEq)]
 enum Source {
     Mock,
-    Hub,
+    Db,
 }
 
 struct App {
     source: Source,
-    hub: String,
+    origin: String,
     store: Store,
     customers: Vec<Person>,
     employees: Vec<Person>,
@@ -70,12 +73,12 @@ fn mock_data() -> (Vec<Ticket>, Vec<Person>, Vec<Person>) {
 
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
-    let hub = API.to_string();
+    let origin = API_ORIGIN.to_string();
     let (tickets, customers, employees) = mock_data();
     APP.with(|a| {
         *a.borrow_mut() = Some(App {
             source: Source::Mock,
-            hub: hub.clone(),
+            origin: origin.clone(),
             store: Store::new(tickets),
             customers,
             employees,
@@ -90,8 +93,8 @@ pub fn start() -> Result<(), JsValue> {
     if query_param("source").as_deref() == Some("mock") {
         use_mock("Mock snapshot");
     } else {
-        select("source").set_value("hub");
-        spawn_local(load_hub());
+        select("source").set_value(DB_OPTION);
+        spawn_local(load_db());
     }
     Ok(())
 }
@@ -113,8 +116,8 @@ fn use_mock(why: &str) {
     status(&format!("{why}: {n} tickets. Edits stay in this page."), false);
 }
 
-async fn load_hub() {
-    let hub = API.to_string();
+async fn load_db() {
+    let origin = API_ORIGIN.to_string();
     status("Opening the shared database ...", false);
     let db = match call("GET", "/api/source", None).await {
         Ok((200, text)) => serde_json::from_str::<Value>(&text)
@@ -128,11 +131,11 @@ async fn load_hub() {
     };
     let loaded = async {
         let t: Vec<Ticket> =
-            serde_json::from_value(Value::Array(fetch_all(&hub, "tickets").await?)).map_err(|e| e.to_string())?;
+            serde_json::from_value(Value::Array(fetch_all(&origin, "tickets").await?)).map_err(|e| e.to_string())?;
         let c: Vec<Person> =
-            serde_json::from_value(Value::Array(fetch_all(&hub, "customers").await?)).map_err(|e| e.to_string())?;
+            serde_json::from_value(Value::Array(fetch_all(&origin, "customers").await?)).map_err(|e| e.to_string())?;
         let e: Vec<Person> =
-            serde_json::from_value(Value::Array(fetch_all(&hub, "employees").await?)).map_err(|e| e.to_string())?;
+            serde_json::from_value(Value::Array(fetch_all(&origin, "employees").await?)).map_err(|e| e.to_string())?;
         Ok::<_, String>((t, c, e))
     }
     .await;
@@ -140,8 +143,8 @@ async fn load_hub() {
         Ok((t, c, e)) => {
             let n = t.len();
             with(|a| {
-                a.source = Source::Hub;
-                a.hub = hub.clone();
+                a.source = Source::Db;
+                a.origin = origin.clone();
                 a.store = Store::new(t);
                 a.customers = c;
                 a.employees = e;
@@ -163,14 +166,14 @@ async fn load_hub() {
     }
 }
 
-/// Every row of a hub table, paging with ?limit/&offset.
-async fn fetch_all(hub: &str, table: &str) -> Result<Vec<Value>, String> {
+/// Every row of a shared-database table, paging with ?limit/&offset.
+async fn fetch_all(origin: &str, table: &str) -> Result<Vec<Value>, String> {
     let mut rows = Vec::new();
     loop {
-        let url = format!("{hub}/api/{table}?limit={PAGE}&offset={}", rows.len());
+        let url = format!("{origin}/api/{table}?limit={PAGE}&offset={}", rows.len());
         let (code, text) = call("GET", &url, None).await?;
         if code != 200 {
-            return Err(hub_error(code, &text));
+            return Err(reply_error(code, &text));
         }
         let page: Vec<Value> = serde_json::from_str(&text).map_err(|e| e.to_string())?;
         let done = page.len() < PAGE;
@@ -205,7 +208,8 @@ async fn call(method: &str, url: &str, body: Option<String>) -> Result<(u16, Str
     Ok((resp.status(), text))
 }
 
-fn hub_error(code: u16, text: &str) -> String {
+/// An error reply as `code: message`: its JSON `error`, else the first 120 characters of the body.
+fn reply_error(code: u16, text: &str) -> String {
     let msg = serde_json::from_str::<Value>(text)
         .ok()
         .and_then(|v| v["error"].as_str().map(String::from))
@@ -239,9 +243,9 @@ async fn change_db() {
     }
     let body = serde_json::json!({ "path": path.trim() }).to_string();
     match call("POST", "/host/db", Some(body)).await {
-        Ok((200, _)) => spawn_local(load_hub()),
+        Ok((200, _)) => spawn_local(load_db()),
         Ok((404, _)) | Err(_) => status("Choosing a database needs the desktop program.", true),
-        Ok((code, text)) => status(&format!("Not used: {}", hub_error(code, &text)), true),
+        Ok((code, text)) => status(&format!("Not used: {}", reply_error(code, &text)), true),
     }
 }
 
@@ -261,10 +265,10 @@ async fn about() {
 // ---- changes ----
 
 async fn apply(change: Change) {
-    let (source, hub) = with(|a| (a.source, a.hub.clone()));
+    let (source, origin) = with(|a| (a.source, a.origin.clone()));
     let result = match source {
         Source::Mock => apply_mock(change),
-        Source::Hub => apply_hub(&hub, change).await,
+        Source::Db => apply_db(&origin, change).await,
     };
     match result {
         Ok(note) => {
@@ -307,14 +311,14 @@ fn apply_mock(change: Change) -> Result<String, String> {
     })
 }
 
-async fn apply_hub(hub: &str, change: Change) -> Result<String, String> {
+async fn apply_db(origin: &str, change: Change) -> Result<String, String> {
     match change {
         Change::Create(d) => {
             let mut t = new_ticket(&d)?;
             let body = d.create_body(t.created_at.as_deref().unwrap_or(""))?;
-            let (code, text) = call("POST", &format!("{hub}/api/tickets"), Some(body.to_string())).await?;
+            let (code, text) = call("POST", &format!("{origin}/api/tickets"), Some(body.to_string())).await?;
             if code != 201 {
-                return Err(format!("POST /api/tickets failed {}", hub_error(code, &text)));
+                return Err(format!("POST /api/tickets failed {}", reply_error(code, &text)));
             }
             t.id = serde_json::from_str::<Value>(&text)
                 .ok()
@@ -329,17 +333,17 @@ async fn apply_hub(hub: &str, change: Change) -> Result<String, String> {
             let Some(body) = d.patch_body(&old)? else {
                 return Ok(format!("#{id}: nothing changed"));
             };
-            let (code, text) = call("PATCH", &format!("{hub}/api/tickets/{id}"), Some(body.to_string())).await?;
+            let (code, text) = call("PATCH", &format!("{origin}/api/tickets/{id}"), Some(body.to_string())).await?;
             if code != 200 {
-                return Err(format!("PATCH /api/tickets/{id} failed {}", hub_error(code, &text)));
+                return Err(format!("PATCH /api/tickets/{id} failed {}", reply_error(code, &text)));
             }
             with(|a| a.store.get_mut(id).map(|t| d.apply(t))).transpose()?;
             Ok(format!("PATCH /api/tickets/{id} {body} -> 200"))
         }
         Change::Delete(id) => {
-            let (code, text) = call("DELETE", &format!("{hub}/api/tickets/{id}"), None).await?;
+            let (code, text) = call("DELETE", &format!("{origin}/api/tickets/{id}"), None).await?;
             if code != 200 {
-                return Err(format!("DELETE /api/tickets/{id} failed {}", hub_error(code, &text)));
+                return Err(format!("DELETE /api/tickets/{id} failed {}", reply_error(code, &text)));
             }
             with(|a| a.store.delete(id));
             Ok(format!("DELETE /api/tickets/{id} -> 200"))
@@ -416,12 +420,12 @@ fn draw() {
     });
     el("board").set_inner_html(&html);
     el("count").set_text_content(Some(&format!("{shown} of {total} tickets")));
-    el("mode").set_text_content(Some(if source == Source::Hub {
+    el("mode").set_text_content(Some(if source == Source::Db {
         "shared database"
     } else {
         "mock"
     }));
-    el("mode").set_class_name(if source == Source::Hub { "badge live" } else { "badge" });
+    el("mode").set_class_name(if source == Source::Db { "badge live" } else { "badge" });
 }
 
 fn refill_pickers() {
@@ -471,15 +475,15 @@ fn on(id: &str, kind: &str, f: impl FnMut(Event) + 'static) -> Result<(), JsValu
 
 fn wire() -> Result<(), JsValue> {
     on("source", "change", |_| {
-        if select("source").value() == "hub" {
-            spawn_local(load_hub());
+        if select("source").value() == DB_OPTION {
+            spawn_local(load_db());
         } else {
             use_mock("Mock snapshot");
         }
     })?;
     on("reload", "click", |_| {
-        if select("source").value() == "hub" {
-            spawn_local(load_hub());
+        if select("source").value() == DB_OPTION {
+            spawn_local(load_db());
         } else {
             use_mock("Mock snapshot reloaded");
         }
@@ -568,4 +572,4 @@ fn wire() -> Result<(), JsValue> {
     Ok(())
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=900a6d633f7793b4961678d0f842889ab0df5cf2c24d81e4d11f7d1b098e9c28 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=fab9cb745ff94694aabf60d21a71a95dce8e8e007d70468f7e316d940c30fa97 ====

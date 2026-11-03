@@ -756,7 +756,7 @@ mod tests {
         let real = |_: &str| -> Result<String, String> { panic!("read the real registry in a sandbox") };
         assert_eq!(located(&p, &real).unwrap().install_dir, p.install_dir, "no entry");
         let mut elsewhere = p.clone();
-        elsewhere.install_dir = std::path::absolute(&root).unwrap().join("Apps").join("Journal");
+        elsewhere.install_dir = std::path::absolute(&root).unwrap().join("Apps").join("Elsewhere");
         entry(&p, &elsewhere.install_dir);
         assert_eq!(located(&p, &real).unwrap().install_dir, p.install_dir, "a stale entry");
         wizard_install(&elsewhere, "GenericCompany.Test");
@@ -782,7 +782,7 @@ mod tests {
         let (dir, build, root) = setup("elsewhere");
         let p = plan(&program(&build), &none, Some(&root), false, 1, "20261017");
         let mut elsewhere = p.clone();
-        elsewhere.install_dir = std::path::absolute(&root).unwrap().join("Apps").join("Journal");
+        elsewhere.install_dir = std::path::absolute(&root).unwrap().join("Apps").join("Elsewhere");
         entry(&p, &elsewhere.install_dir);
         let empty = |_: &str| -> Result<String, String> { Ok(String::new()) };
         wizard_install(&elsewhere, "GenericCompany.Other");
@@ -799,7 +799,7 @@ mod tests {
     fn located_reads_the_real_registry() {
         let (dir, build, root) = setup("registry");
         let p = plan(&program(&build), &none, None, false, 1, "20261017");
-        let folder = std::path::absolute(&root).unwrap().join("Apps").join("Journal");
+        let folder = std::path::absolute(&root).unwrap().join("Apps").join("Elsewhere");
         let mut elsewhere = p.clone();
         elsewhere.install_dir = folder.clone();
         wizard_install(&elsewhere, "GenericCompany.Test");
@@ -848,4 +848,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=3a4327508941c5907b6809e3213ca0b24f6393de066c8dedf6081f65765af2d0 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=c5e44e323890014de18f76b6eba71410aac34c7557e3e236c8d1e024869aa5f2 ====
