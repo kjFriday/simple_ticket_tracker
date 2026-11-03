@@ -1,9 +1,9 @@
 // ==== Generic Company Inc. portfolio ====================================
-// Project: simple_ticket_tracker | File: src/core/board.rs
+// Project: ticket_tracker | File: src/core/board.rs
 // About: Board state: filtering, columns, and the in-memory store used in mock (standalone) mode.
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
 // You may change this file under the AGPL-3.0. The stamp at the end marks
-// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// the version kjFriday wrote. Verify with the portfolio's tools/stamp.py --check.
 // Reused code, if any, is mapped in PROVENANCE.md.
 // ========================================================================
 
@@ -165,4 +165,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=5f6dc862026d42653a8d3eb216a6ff6a4714225988aa211577229e86d0ba1c38 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=31db2716ffefbd1ccc9f75d443121fe2ee99d01c8d8f1695310573505d19a4ff ====

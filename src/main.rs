@@ -1,9 +1,9 @@
 // ==== Generic Company Inc. portfolio ====================================
-// Project: simple_ticket_tracker | File: src/main.rs
+// Project: ticket_tracker | File: src/main.rs
 // About: generic-company-tickets: Generic Company Ticket Tracker as a desktop program (build with...
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
 // You may change this file under the AGPL-3.0. The stamp at the end marks
-// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// the version kjFriday wrote. Verify with the portfolio's tools/stamp.py --check.
 // Reused code, if any, is mapped in PROVENANCE.md.
 // ========================================================================
 
@@ -38,4 +38,4 @@ fn main() {
     });
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=fc7c5eba1cc7104fffa3fb888810727bae9ed8b3d28425ac1601e9e1c9e360b2 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=ce05a93a85d19f99a9c6ea6a844eecf28d26e7b8eec582032fb69538013f9dc5 ====

@@ -1,9 +1,9 @@
 // ==== Generic Company Inc. portfolio ====================================
-// Project: simple_ticket_tracker | File: src/host/install.rs
+// Project: ticket_tracker | File: src/host/install.rs
 // About: Install or uninstall the program for the current user (no admin rights): the exe, its...
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
 // You may change this file under the AGPL-3.0. The stamp at the end marks
-// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// the version kjFriday wrote. Verify with the portfolio's tools/stamp.py --check.
 // Reused code, if any, is mapped in PROVENANCE.md.
 // ========================================================================
 
@@ -848,4 +848,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=e0eb4bce50f85f4ccfba042a9ee2bb8544d058d80844f3a4c70ca97f8e934c30 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=3a4327508941c5907b6809e3213ca0b24f6393de066c8dedf6081f65765af2d0 ====

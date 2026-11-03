@@ -1,9 +1,9 @@
 // ==== Generic Company Inc. portfolio ====================================
-// Project: simple_ticket_tracker | File: src/web.rs
+// Project: ticket_tracker | File: src/web.rs
 // About: Page wiring.
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
 // You may change this file under the AGPL-3.0. The stamp at the end marks
-// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// the version kjFriday wrote. Verify with the portfolio's tools/stamp.py --check.
 // Reused code, if any, is mapped in PROVENANCE.md.
 // ========================================================================
 
@@ -568,4 +568,4 @@ fn wire() -> Result<(), JsValue> {
     Ok(())
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=05328bce0f0d13785ae4aeef48f249543d36ed1165448cea677eda2d93b48066 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=900a6d633f7793b4961678d0f842889ab0df5cf2c24d81e4d11f7d1b098e9c28 ====

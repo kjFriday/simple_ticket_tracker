@@ -1,9 +1,9 @@
 // ==== Generic Company Inc. portfolio ====================================
-// Project: simple_ticket_tracker | File: build.rs
+// Project: ticket_tracker | File: build.rs
 // About: Links icon/app.res (the pixel icon as resource 1, plus a DPI-aware manifest) into the...
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
 // You may change this file under the AGPL-3.0. The stamp at the end marks
-// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// the version kjFriday wrote. Verify with the portfolio's tools/stamp.py --check.
 // Reused code, if any, is mapped in PROVENANCE.md.
 // ========================================================================
 
@@ -20,4 +20,4 @@ fn main() {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=ab0cf0c725c1814e0ccf0fc1a681d580c1b68d03b9d10002acaac0f1696b3a6d ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=79e47481f0495a2df41d1a048da5a182ed23612719c1979cf859be9b446bc043 ====

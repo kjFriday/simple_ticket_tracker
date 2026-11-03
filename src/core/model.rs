@@ -1,9 +1,9 @@
 // ==== Generic Company Inc. portfolio ====================================
-// Project: simple_ticket_tracker | File: src/core/model.rs
+// Project: ticket_tracker | File: src/core/model.rs
 // About: Rows as the hub serves them (`GET /api/{table}`); unknown columns are ignored.
 // Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only
 // You may change this file under the AGPL-3.0. The stamp at the end marks
-// the version kjFriday wrote. Verify with the portfolio's stamp.py --check.
+// the version kjFriday wrote. Verify with the portfolio's tools/stamp.py --check.
 // Reused code, if any, is mapped in PROVENANCE.md.
 // ========================================================================
 
@@ -161,4 +161,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=0c52b98f5a9693c5a18d97870b323acdde113ef1b8cc24a56d63392e32bba1e4 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=1fffff9fa9023c3aa84526fb63a863374c9c61e8f8ee96cc61655c87a3891cc6 ====

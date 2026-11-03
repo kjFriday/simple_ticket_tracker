@@ -1,9 +1,9 @@
 /* ==== Generic Company Inc. portfolio ==================================== */
-/* Project: simple_ticket_tracker | File: www/style.css */
-/* About: CSS source for simple_ticket_tracker. */
+/* Project: ticket_tracker | File: www/style.css */
+/* About: CSS source for ticket_tracker. */
 /* Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only */
 /* You may change this file under the AGPL-3.0. The stamp at the end marks */
-/* the version kjFriday wrote. Verify with the portfolio's stamp.py --check. */
+/* the version kjFriday wrote. Verify with the portfolio's tools/stamp.py --check. */
 /* Reused code, if any, is mapped in PROVENANCE.md. */
 /* ======================================================================== */
 
@@ -62,4 +62,4 @@ footer .version { float: right; color: var(--muted); }
 .about { text-align: center; max-width: 420px; }
 .about .small { font-size: 12px; color: var(--muted); }
 
-/* ==== stamp v1 | author=kjFriday | hmac-sha256=d8e07b5cdc130a42d8ac7744a72728de33d7e748ffb917b4c8b369ad5f0ec11b ==== */
+/* ==== stamp v1 | author=kjFriday | hmac-sha256=32ae8829361984c768c29ff561ca29ee29b4fc4979cfdd998082142d12f538d5 ==== */
