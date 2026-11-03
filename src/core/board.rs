@@ -47,7 +47,10 @@ pub fn columns<'a>(tickets: &'a [Ticket], filter: &Filter, customers: &[Person])
     Status::ALL
         .iter()
         .map(|&s| {
-            let mut col: Vec<&Ticket> = tickets.iter().filter(|t| t.status == s && filter.matches(t, customers)).collect();
+            let mut col: Vec<&Ticket> = tickets
+                .iter()
+                .filter(|t| t.status == s && filter.matches(t, customers))
+                .collect();
             col.sort_by(|a, b| b.created_at.cmp(&a.created_at).then(b.id.cmp(&a.id)));
             (s, col)
         })
@@ -88,7 +91,15 @@ mod tests {
     use super::*;
 
     fn t(id: i64, status: Status, assignee: Option<i64>, created: &str, title: &str) -> Ticket {
-        Ticket { id, customer_id: Some(1), assignee_id: assignee, title: title.into(), body: None, status, created_at: Some(created.into()) }
+        Ticket {
+            id,
+            customer_id: Some(1),
+            assignee_id: assignee,
+            title: title.into(),
+            body: None,
+            status,
+            created_at: Some(created.into()),
+        }
     }
 
     fn sample() -> Vec<Ticket> {
@@ -112,14 +123,32 @@ mod tests {
     #[test]
     fn filters_by_assignee_text_and_customer_name() {
         let ts = sample();
-        let people = vec![Person { id: 1, name: "Maria Garcia".into(), role: None, email: None, city: None }];
-        let f = Filter { assignee: Some(10), ..Default::default() };
+        let people = vec![Person {
+            id: 1,
+            name: "Maria Garcia".into(),
+            role: None,
+            email: None,
+            city: None,
+        }];
+        let f = Filter {
+            assignee: Some(10),
+            ..Default::default()
+        };
         assert_eq!(ts.iter().filter(|t| f.matches(t, &people)).count(), 2);
-        let f = Filter { text: "  REFUND ".into(), ..Default::default() };
+        let f = Filter {
+            text: "  REFUND ".into(),
+            ..Default::default()
+        };
         assert_eq!(ts.iter().filter(|t| f.matches(t, &people)).count(), 1);
-        let f = Filter { text: "garcia".into(), ..Default::default() };
+        let f = Filter {
+            text: "garcia".into(),
+            ..Default::default()
+        };
         assert_eq!(ts.iter().filter(|t| f.matches(t, &people)).count(), 4);
-        let f = Filter { text: "#3".into(), ..Default::default() };
+        let f = Filter {
+            text: "#3".into(),
+            ..Default::default()
+        };
         assert_eq!(ts.iter().filter(|t| f.matches(t, &people)).count(), 1);
     }
 
@@ -136,4 +165,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=b67f5f0f5d71d10251a49ad0e165782bd8c3cba311c2dd5fc9bbb0261dd374cf ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=5f6dc862026d42653a8d3eb216a6ff6a4714225988aa211577229e86d0ba1c38 ====

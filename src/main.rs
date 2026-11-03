@@ -22,7 +22,10 @@ fn main() {
         height: 800.0,
         tables: Tables {
             read: &[
-                ("tickets", &["customer_id", "assignee_id", "title", "body", "status", "created_at"]),
+                (
+                    "tickets",
+                    &["customer_id", "assignee_id", "title", "body", "status", "created_at"],
+                ),
                 ("customers", &["name", "email", "city"]),
                 ("employees", &["name", "role", "email"]),
             ],
@@ -35,4 +38,4 @@ fn main() {
     });
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=fa41fc252301eb2abddc364285c31a56de8b1a78da35f00164c5d5f62d4e3bf3 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=fc7c5eba1cc7104fffa3fb888810727bae9ed8b3d28425ac1601e9e1c9e360b2 ====

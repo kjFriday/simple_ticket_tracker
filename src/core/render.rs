@@ -28,9 +28,21 @@ pub fn escape(s: &str) -> String {
 }
 
 fn card(t: &Ticket, customers: &[Person], employees: &[Person]) -> String {
-    let left = if t.status.prev().is_some() { r#"<button data-act="prev" title="Move left">&larr;</button>"# } else { "" };
-    let right = if t.status.next().is_some() { r#"<button data-act="next" title="Move right">&rarr;</button>"# } else { "" };
-    let body = t.body.as_deref().map(|b| format!(r#"<p class="body">{}</p>"#, escape(b))).unwrap_or_default();
+    let left = if t.status.prev().is_some() {
+        r#"<button data-act="prev" title="Move left">&larr;</button>"#
+    } else {
+        ""
+    };
+    let right = if t.status.next().is_some() {
+        r#"<button data-act="next" title="Move right">&rarr;</button>"#
+    } else {
+        ""
+    };
+    let body = t
+        .body
+        .as_deref()
+        .map(|b| format!(r#"<p class="body">{}</p>"#, escape(b)))
+        .unwrap_or_default();
     let day = t.created_at.as_deref().map(|d| d.get(..10).unwrap_or(d)).unwrap_or("");
     format!(
         concat!(
@@ -75,8 +87,19 @@ pub fn options(people: &[Person], selected: Option<i64>, blank: &str) -> String 
     sorted.sort_by(|a, b| a.name.cmp(&b.name).then(a.id.cmp(&b.id)));
     for p in sorted {
         let sel = if Some(p.id) == selected { " selected" } else { "" };
-        let extra = p.role.as_deref().or(p.city.as_deref()).map(|r| format!(" ({})", escape(r))).unwrap_or_default();
-        out.push_str(&format!(r#"<option value="{}"{}>{}{}</option>"#, p.id, sel, escape(&p.name), extra));
+        let extra = p
+            .role
+            .as_deref()
+            .or(p.city.as_deref())
+            .map(|r| format!(" ({})", escape(r)))
+            .unwrap_or_default();
+        out.push_str(&format!(
+            r#"<option value="{}"{}>{}{}</option>"#,
+            p.id,
+            sel,
+            escape(&p.name),
+            extra
+        ));
     }
     out
 }
@@ -88,12 +111,23 @@ mod tests {
 
     #[test]
     fn escape_covers_html_specials() {
-        assert_eq!(escape(r#"<a href="x">'&'</a>"#), "&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;");
+        assert_eq!(
+            escape(r#"<a href="x">'&'</a>"#),
+            "&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;"
+        );
     }
 
     #[test]
     fn board_escapes_titles_and_counts_columns() {
-        let ts = vec![Ticket { id: 7, customer_id: None, assignee_id: None, title: "<script>".into(), body: Some("a&b".into()), status: Status::Open, created_at: Some("2026-05-06T07:08".into()) }];
+        let ts = vec![Ticket {
+            id: 7,
+            customer_id: None,
+            assignee_id: None,
+            title: "<script>".into(),
+            body: Some("a&b".into()),
+            status: Status::Open,
+            created_at: Some("2026-05-06T07:08".into()),
+        }];
         let html = board(&ts, &Filter::default(), &[], &[]);
         assert!(!html.contains("<script>"));
         assert!(html.contains("&lt;script&gt;"));
@@ -108,8 +142,20 @@ mod tests {
     #[test]
     fn options_sort_and_select() {
         let p = vec![
-            Person { id: 2, name: "Zoe Adams".into(), role: Some("Sales".into()), email: None, city: None },
-            Person { id: 1, name: "Aiden <B>".into(), role: None, email: None, city: Some("Lyon".into()) },
+            Person {
+                id: 2,
+                name: "Zoe Adams".into(),
+                role: Some("Sales".into()),
+                email: None,
+                city: None,
+            },
+            Person {
+                id: 1,
+                name: "Aiden <B>".into(),
+                role: None,
+                email: None,
+                city: Some("Lyon".into()),
+            },
         ];
         let html = options(&p, Some(2), "Anyone");
         assert!(html.starts_with(r#"<option value="">Anyone</option><option value="1">Aiden &lt;B&gt; (Lyon)"#));
@@ -117,4 +163,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=30e4465767fff506f145c625b7f30b2d5636745d1212c6253029dc34efcbeaf1 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=28918e0fdefb1daeb3ac0f3fd6a262fd24d54fa095169f88e1b60c30c98c89fb ====

@@ -46,7 +46,11 @@ impl Draft {
         if title.is_empty() {
             return Err("A ticket needs a title.".into());
         }
-        Ok(Draft { title, body: clean(self.body.trim(), LIMIT), ..self.clone() })
+        Ok(Draft {
+            title,
+            body: clean(self.body.trim(), LIMIT),
+            ..self.clone()
+        })
     }
 
     /// POST body for a new ticket; `now` is the created_at stamp (yyyy-mm-ddThh:mm).
@@ -109,24 +113,42 @@ mod tests {
     use super::*;
 
     fn ticket() -> Ticket {
-        Ticket { id: 1, customer_id: Some(2), assignee_id: Some(3), title: "Old".into(), body: None, status: Status::Open, created_at: None }
+        Ticket {
+            id: 1,
+            customer_id: Some(2),
+            assignee_id: Some(3),
+            title: "Old".into(),
+            body: None,
+            status: Status::Open,
+            created_at: None,
+        }
     }
 
     #[test]
     fn clean_matches_textsafe() {
-        assert_eq!(clean("a\u{0}b\tc\nd\u{7f}e\u{9b}f\u{202e}g\u{2066}h", 240), "ab\tc\ndefgh");
+        assert_eq!(
+            clean("a\u{0}b\tc\nd\u{7f}e\u{9b}f\u{202e}g\u{2066}h", 240),
+            "ab\tc\ndefgh"
+        );
         assert_eq!(clean("héllo wörld", 5), "héllo");
     }
 
     #[test]
     fn empty_title_is_refused() {
-        let d = Draft { title: "  \u{0} ".into(), ..Default::default() };
+        let d = Draft {
+            title: "  \u{0} ".into(),
+            ..Default::default()
+        };
         assert!(d.create_body("2026-01-01T00:00").is_err());
     }
 
     #[test]
     fn create_body_defaults_to_open() {
-        let d = Draft { title: " Lorem ipsum ".into(), customer_id: Some(4), ..Default::default() };
+        let d = Draft {
+            title: " Lorem ipsum ".into(),
+            customer_id: Some(4),
+            ..Default::default()
+        };
         let v = d.create_body("2026-01-01T00:00").unwrap();
         assert_eq!(v["title"], "Lorem ipsum");
         assert_eq!(v["status"], "open");
@@ -138,9 +160,18 @@ mod tests {
     #[test]
     fn patch_body_only_holds_changes() {
         let old = ticket();
-        let same = Draft { title: "Old".into(), customer_id: Some(2), assignee_id: Some(3), ..Default::default() };
+        let same = Draft {
+            title: "Old".into(),
+            customer_id: Some(2),
+            assignee_id: Some(3),
+            ..Default::default()
+        };
         assert_eq!(same.patch_body(&old).unwrap(), None);
-        let moved = Draft { status: Some(Status::Closed), assignee_id: None, ..same.clone() };
+        let moved = Draft {
+            status: Some(Status::Closed),
+            assignee_id: None,
+            ..same.clone()
+        };
         let v = moved.patch_body(&old).unwrap().unwrap();
         assert_eq!(v.as_object().unwrap().len(), 2);
         assert_eq!(v["status"], "closed");
@@ -150,9 +181,17 @@ mod tests {
     #[test]
     fn apply_updates_the_ticket() {
         let mut t = ticket();
-        let d = Draft { title: "New".into(), body: "dolor".into(), status: Some(Status::InProgress), ..Default::default() };
+        let d = Draft {
+            title: "New".into(),
+            body: "dolor".into(),
+            status: Some(Status::InProgress),
+            ..Default::default()
+        };
         d.apply(&mut t).unwrap();
-        assert_eq!((t.title.as_str(), t.body.as_deref(), t.status, t.customer_id), ("New", Some("dolor"), Status::InProgress, None));
+        assert_eq!(
+            (t.title.as_str(), t.body.as_deref(), t.status, t.customer_id),
+            ("New", Some("dolor"), Status::InProgress, None)
+        );
     }
 
     #[test]
@@ -163,4 +202,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=838153abb4cc970bdf9817b159a0e4c07440c75d7e1bbb1d493ad8595995a246 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=b909dcb2c1d51ec4a10786a6bcb8eae3f246dbf675e4d31dbe6f0ce49e13c7be ====

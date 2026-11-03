@@ -73,9 +73,19 @@ pub fn start() -> Result<(), JsValue> {
     let hub = API.to_string();
     let (tickets, customers, employees) = mock_data();
     APP.with(|a| {
-        *a.borrow_mut() = Some(App { source: Source::Mock, hub: hub.clone(), store: Store::new(tickets), customers, employees, filter: Filter::default() })
+        *a.borrow_mut() = Some(App {
+            source: Source::Mock,
+            hub: hub.clone(),
+            store: Store::new(tickets),
+            customers,
+            employees,
+            filter: Filter::default(),
+        })
     });
-    el("version").set_text_content(Some(concat!("Generic Company Ticket Tracker ", env!("CARGO_PKG_VERSION"))));
+    el("version").set_text_content(Some(concat!(
+        "Generic Company Ticket Tracker ",
+        env!("CARGO_PKG_VERSION")
+    )));
     wire()?;
     if query_param("source").as_deref() == Some("mock") {
         use_mock("Mock snapshot");
@@ -107,7 +117,9 @@ async fn load_hub() {
     let hub = API.to_string();
     status("Opening the shared database ...", false);
     let db = match call("GET", "/api/source", None).await {
-        Ok((200, text)) => serde_json::from_str::<Value>(&text).ok().and_then(|v| v["db"].as_str().map(String::from)),
+        Ok((200, text)) => serde_json::from_str::<Value>(&text)
+            .ok()
+            .and_then(|v| v["db"].as_str().map(String::from)),
         _ => None,
     };
     let Some(db) = db else {
@@ -115,9 +127,12 @@ async fn load_hub() {
         return;
     };
     let loaded = async {
-        let t: Vec<Ticket> = serde_json::from_value(Value::Array(fetch_all(&hub, "tickets").await?)).map_err(|e| e.to_string())?;
-        let c: Vec<Person> = serde_json::from_value(Value::Array(fetch_all(&hub, "customers").await?)).map_err(|e| e.to_string())?;
-        let e: Vec<Person> = serde_json::from_value(Value::Array(fetch_all(&hub, "employees").await?)).map_err(|e| e.to_string())?;
+        let t: Vec<Ticket> =
+            serde_json::from_value(Value::Array(fetch_all(&hub, "tickets").await?)).map_err(|e| e.to_string())?;
+        let c: Vec<Person> =
+            serde_json::from_value(Value::Array(fetch_all(&hub, "customers").await?)).map_err(|e| e.to_string())?;
+        let e: Vec<Person> =
+            serde_json::from_value(Value::Array(fetch_all(&hub, "employees").await?)).map_err(|e| e.to_string())?;
         Ok::<_, String>((t, c, e))
     }
     .await;
@@ -133,11 +148,17 @@ async fn load_hub() {
             });
             refill_pickers();
             draw();
-            status(&format!("Shared database {db}: {n} tickets. Edits are saved to it."), false);
+            status(
+                &format!("Shared database {db}: {n} tickets. Edits are saved to it."),
+                false,
+            );
         }
         Err(err) => {
             use_mock("Database unavailable, back on the mock snapshot");
-            status(&format!("Could not read the shared database ({err}). Showing the mock snapshot."), true);
+            status(
+                &format!("Could not read the shared database ({err}). Showing the mock snapshot."),
+                true,
+            );
         }
     }
 }
@@ -171,13 +192,24 @@ async fn call(method: &str, url: &str, body: Option<String>) -> Result<(u16, Str
         req.headers().set("Content-Type", "application/json").map_err(js_err)?;
     }
     let win = web_sys::window().ok_or("no window")?;
-    let resp: Response = JsFuture::from(win.fetch_with_request(&req)).await.map_err(js_err)?.dyn_into().map_err(js_err)?;
-    let text = JsFuture::from(resp.text().map_err(js_err)?).await.map_err(js_err)?.as_string().unwrap_or_default();
+    let resp: Response = JsFuture::from(win.fetch_with_request(&req))
+        .await
+        .map_err(js_err)?
+        .dyn_into()
+        .map_err(js_err)?;
+    let text = JsFuture::from(resp.text().map_err(js_err)?)
+        .await
+        .map_err(js_err)?
+        .as_string()
+        .unwrap_or_default();
     Ok((resp.status(), text))
 }
 
 fn hub_error(code: u16, text: &str) -> String {
-    let msg = serde_json::from_str::<Value>(text).ok().and_then(|v| v["error"].as_str().map(String::from)).unwrap_or_else(|| text.chars().take(120).collect());
+    let msg = serde_json::from_str::<Value>(text)
+        .ok()
+        .and_then(|v| v["error"].as_str().map(String::from))
+        .unwrap_or_else(|| text.chars().take(120).collect());
     format!("{code}: {msg}")
 }
 
@@ -198,7 +230,10 @@ fn now_stamp() -> String {
 /// Ask for another database file; the program checks it, saves the choice and the page reloads.
 async fn change_db() {
     let win = web_sys::window().unwrap();
-    let Ok(Some(path)) = win.prompt_with_message("Path of the shared Generic Company database (generic_company.db):") else { return };
+    let Ok(Some(path)) = win.prompt_with_message("Path of the shared Generic Company database (generic_company.db):")
+    else {
+        return;
+    };
     if path.trim().is_empty() {
         return;
     }
@@ -215,7 +250,10 @@ async fn about() {
         Ok((200, text)) => serde_json::from_str::<Value>(&text).unwrap_or(Value::Null),
         _ => Value::Null,
     };
-    let db = info["db"].as_str().map(String::from).unwrap_or_else(|| "none (mock snapshot)".into());
+    let db = info["db"]
+        .as_str()
+        .map(String::from)
+        .unwrap_or_else(|| "none (mock snapshot)".into());
     el("about-db").set_text_content(Some(&format!("Database: {db}")));
     let _ = about_dialog().show_modal();
 }
@@ -238,7 +276,15 @@ async fn apply(change: Change) {
 }
 
 fn new_ticket(d: &Draft) -> Result<Ticket, String> {
-    let mut t = Ticket { id: 0, customer_id: None, assignee_id: None, title: String::new(), body: None, status: Status::Open, created_at: Some(now_stamp()) };
+    let mut t = Ticket {
+        id: 0,
+        customer_id: None,
+        assignee_id: None,
+        title: String::new(),
+        body: None,
+        status: Status::Open,
+        created_at: Some(now_stamp()),
+    };
     d.apply(&mut t)?;
     Ok(t)
 }
@@ -270,14 +316,19 @@ async fn apply_hub(hub: &str, change: Change) -> Result<String, String> {
             if code != 201 {
                 return Err(format!("POST /api/tickets failed {}", hub_error(code, &text)));
             }
-            t.id = serde_json::from_str::<Value>(&text).ok().and_then(|v| v["id"].as_i64()).ok_or("no id in the reply")?;
+            t.id = serde_json::from_str::<Value>(&text)
+                .ok()
+                .and_then(|v| v["id"].as_i64())
+                .ok_or("no id in the reply")?;
             let id = t.id;
             with(|a| a.store.tickets.push(t));
             Ok(format!("POST /api/tickets -> 201, id {id}"))
         }
         Change::Update(id, d) => {
             let old = with(|a| a.store.tickets.iter().find(|t| t.id == id).cloned()).ok_or("no such ticket")?;
-            let Some(body) = d.patch_body(&old)? else { return Ok(format!("#{id}: nothing changed")) };
+            let Some(body) = d.patch_body(&old)? else {
+                return Ok(format!("#{id}: nothing changed"));
+            };
             let (code, text) = call("PATCH", &format!("{hub}/api/tickets/{id}"), Some(body.to_string())).await?;
             if code != 200 {
                 return Err(format!("PATCH /api/tickets/{id} failed {}", hub_error(code, &text)));
@@ -297,7 +348,13 @@ async fn apply_hub(hub: &str, change: Change) -> Result<String, String> {
 }
 
 fn draft_of(t: &Ticket) -> Draft {
-    Draft { title: t.title.clone(), body: t.body.clone().unwrap_or_default(), customer_id: t.customer_id, assignee_id: t.assignee_id, status: Some(t.status) }
+    Draft {
+        title: t.title.clone(),
+        body: t.body.clone().unwrap_or_default(),
+        customer_id: t.customer_id,
+        assignee_id: t.assignee_id,
+        status: Some(t.status),
+    }
 }
 
 // ---- DOM ----
@@ -336,19 +393,34 @@ fn query_param(key: &str) -> Option<String> {
     let search = web_sys::window()?.location().search().ok()?;
     search.trim_start_matches('?').split('&').find_map(|kv| {
         let (k, v) = kv.split_once('=')?;
-        (k == key).then(|| js_sys::decode_uri_component(&v.replace('+', " ")).ok().map(String::from)).flatten()
+        (k == key)
+            .then(|| {
+                js_sys::decode_uri_component(&v.replace('+', " "))
+                    .ok()
+                    .map(String::from)
+            })
+            .flatten()
     })
 }
 
 fn draw() {
     let (html, shown, total, source) = with(|a| {
         let html = render::board(&a.store.tickets, &a.filter, &a.customers, &a.employees);
-        let shown = a.store.tickets.iter().filter(|t| a.filter.matches(t, &a.customers)).count();
+        let shown = a
+            .store
+            .tickets
+            .iter()
+            .filter(|t| a.filter.matches(t, &a.customers))
+            .count();
         (html, shown, a.store.tickets.len(), a.source)
     });
     el("board").set_inner_html(&html);
     el("count").set_text_content(Some(&format!("{shown} of {total} tickets")));
-    el("mode").set_text_content(Some(if source == Source::Hub { "shared database" } else { "mock" }));
+    el("mode").set_text_content(Some(if source == Source::Hub {
+        "shared database"
+    } else {
+        "mock"
+    }));
     el("mode").set_class_name(if source == Source::Hub { "badge live" } else { "badge" });
 }
 
@@ -366,7 +438,10 @@ fn open_editor(t: Option<&Ticket>) {
     el("editor-title").set_text_content(Some(&t.map_or("New ticket".to_string(), |t| format!("Edit #{}", t.id))));
     input("e-id").set_value(&t.map_or(String::new(), |t| t.id.to_string()));
     input("e-title").set_value(&d.title);
-    el("e-body").dyn_into::<HtmlTextAreaElement>().unwrap().set_value(&d.body);
+    el("e-body")
+        .dyn_into::<HtmlTextAreaElement>()
+        .unwrap()
+        .set_value(&d.body);
     with(|a| {
         select("e-customer").set_inner_html(&render::options(&a.customers, d.customer_id, "No customer"));
         select("e-assignee").set_inner_html(&render::options(&a.employees, d.assignee_id, "Unassigned"));
@@ -440,12 +515,36 @@ fn wire() -> Result<(), JsValue> {
         }));
     })?;
     on("board", "click", |ev| {
-        let Some(target) = ev.target().and_then(|t| t.dyn_into::<Element>().ok()) else { return };
-        let Ok(Some(button)) = target.closest("[data-act]") else { return };
-        let Some(id) = button.closest(".card").ok().flatten().and_then(|c| c.get_attribute("data-id")).and_then(|s| parse_id(&s)) else { return };
-        let Some(t) = with(|a| a.store.tickets.iter().find(|t| t.id == id).cloned()) else { return };
+        let Some(target) = ev.target().and_then(|t| t.dyn_into::<Element>().ok()) else {
+            return;
+        };
+        let Ok(Some(button)) = target.closest("[data-act]") else {
+            return;
+        };
+        let Some(id) = button
+            .closest(".card")
+            .ok()
+            .flatten()
+            .and_then(|c| c.get_attribute("data-id"))
+            .and_then(|s| parse_id(&s))
+        else {
+            return;
+        };
+        let Some(t) = with(|a| a.store.tickets.iter().find(|t| t.id == id).cloned()) else {
+            return;
+        };
         let act = button.get_attribute("data-act").unwrap_or_default();
-        let moved = |s: Option<Status>| s.map(|s| Change::Update(id, Draft { status: Some(s), ..draft_of(&t) }));
+        let moved = |s: Option<Status>| {
+            s.map(|s| {
+                Change::Update(
+                    id,
+                    Draft {
+                        status: Some(s),
+                        ..draft_of(&t)
+                    },
+                )
+            })
+        };
         let change = match act.as_str() {
             "prev" => moved(t.status.prev()),
             "next" => moved(t.status.next()),
@@ -454,7 +553,10 @@ fn wire() -> Result<(), JsValue> {
                 None
             }
             "delete" => {
-                let ok = web_sys::window().unwrap().confirm_with_message(&format!("Delete ticket #{id}?")).unwrap_or(false);
+                let ok = web_sys::window()
+                    .unwrap()
+                    .confirm_with_message(&format!("Delete ticket #{id}?"))
+                    .unwrap_or(false);
                 ok.then_some(Change::Delete(id))
             }
             _ => None,
@@ -466,4 +568,4 @@ fn wire() -> Result<(), JsValue> {
     Ok(())
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=fb93fc14a4a8c3e056f04dfe992d8b1268aa268f18b549f7660511c2fbc0da69 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=05328bce0f0d13785ae4aeef48f249543d36ed1165448cea677eda2d93b48066 ====

@@ -32,7 +32,11 @@ pub struct Reply {
 
 impl Reply {
     pub fn json(status: u16, v: &Value) -> Reply {
-        Reply { status, headers: vec![("Content-Type", "application/json".into())], body: v.to_string().into_bytes() }
+        Reply {
+            status,
+            headers: vec![("Content-Type", "application/json".into())],
+            body: v.to_string().into_bytes(),
+        }
     }
     fn error(status: u16, msg: &str) -> Reply {
         Reply::json(status, &json!({ "error": msg }))
@@ -42,8 +46,17 @@ impl Reply {
 /// Splits `/api/x/y?a=1&b=2` into path segments after /api and query pairs.
 pub fn parse_target(target: &str) -> (Vec<String>, Vec<(String, String)>) {
     let (path, query) = target.split_once('?').unwrap_or((target, ""));
-    let segs = path.trim_start_matches("/api").split('/').filter(|s| !s.is_empty()).map(String::from).collect();
-    let pairs = query.split('&').filter_map(|kv| kv.split_once('=')).map(|(k, v)| (k.to_string(), v.to_string())).collect();
+    let segs = path
+        .trim_start_matches("/api")
+        .split('/')
+        .filter(|s| !s.is_empty())
+        .map(String::from)
+        .collect();
+    let pairs = query
+        .split('&')
+        .filter_map(|kv| kv.split_once('='))
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
     (segs, pairs)
 }
 
@@ -100,9 +113,15 @@ fn db_error(e: rusqlite::Error) -> Reply {
 /// Answers one request. `conn` is None when there is no usable database.
 pub fn handle(tables: &Tables, conn: Option<&Connection>, method: &str, target: &str, body: &[u8]) -> Reply {
     let (segs, query) = parse_target(target);
-    let Some(conn) = conn else { return Reply::error(503, "no database") };
-    let Some(table) = segs.first() else { return Reply::error(404, "not found") };
-    let Some(&(name, cols)) = tables.read.iter().find(|(t, _)| t == table) else { return Reply::error(404, "unknown table") };
+    let Some(conn) = conn else {
+        return Reply::error(503, "no database");
+    };
+    let Some(table) = segs.first() else {
+        return Reply::error(404, "not found");
+    };
+    let Some(&(name, cols)) = tables.read.iter().find(|(t, _)| t == table) else {
+        return Reply::error(404, "unknown table");
+    };
     let id = match segs.get(1).map(|s| s.parse::<i64>()) {
         None => None,
         Some(Ok(id)) if segs.len() == 2 => Some(id),
@@ -123,8 +142,14 @@ pub fn handle(tables: &Tables, conn: Option<&Connection>, method: &str, target: 
                 Some(Ok(n)) if n >= 0 => n,
                 _ => return Reply::error(400, "offset must be 0 or more"),
             };
-            let list = rows(conn, &format!("{select} ORDER BY id DESC LIMIT ? OFFSET ?"), &[Sql::Integer(limit), Sql::Integer(offset)], cols);
-            let total: rusqlite::Result<i64> = conn.query_row(&format!("SELECT COUNT(*) FROM {name}"), [], |r| r.get(0));
+            let list = rows(
+                conn,
+                &format!("{select} ORDER BY id DESC LIMIT ? OFFSET ?"),
+                &[Sql::Integer(limit), Sql::Integer(offset)],
+                cols,
+            );
+            let total: rusqlite::Result<i64> =
+                conn.query_row(&format!("SELECT COUNT(*) FROM {name}"), [], |r| r.get(0));
             match (list, total) {
                 (Ok(list), Ok(total)) => {
                     let mut r = Reply::json(200, &Value::Array(list));
@@ -141,7 +166,9 @@ pub fn handle(tables: &Tables, conn: Option<&Connection>, method: &str, target: 
         },
         ("POST" | "PATCH" | "DELETE", _) if !writable => Reply::error(405, "read-only"),
         ("POST", None) | ("PATCH", Some(_)) => {
-            let Ok(Value::Object(obj)) = serde_json::from_slice::<Value>(body) else { return Reply::error(400, "body must be a JSON object") };
+            let Ok(Value::Object(obj)) = serde_json::from_slice::<Value>(body) else {
+                return Reply::error(400, "body must be a JSON object");
+            };
             let fields = match known(cols, &obj) {
                 Ok(f) if !f.is_empty() => f,
                 Ok(_) => return Reply::error(400, "no known columns"),
@@ -152,14 +179,20 @@ pub fn handle(tables: &Tables, conn: Option<&Connection>, method: &str, target: 
             if let Some(id) = id {
                 values.push(Sql::Integer(id));
                 let sets: Vec<String> = names.iter().map(|n| format!("{n} = ?")).collect();
-                match conn.execute(&format!("UPDATE {name} SET {} WHERE id = ?", sets.join(", ")), params_from_iter(values.iter())) {
+                match conn.execute(
+                    &format!("UPDATE {name} SET {} WHERE id = ?", sets.join(", ")),
+                    params_from_iter(values.iter()),
+                ) {
                     Ok(0) => Reply::error(404, "not found"),
                     Ok(n) => Reply::json(200, &json!({ "updated": n })),
                     Err(e) => db_error(e),
                 }
             } else {
                 let marks = vec!["?"; names.len()].join(", ");
-                match conn.execute(&format!("INSERT INTO {name} ({}) VALUES ({marks})", names.join(", ")), params_from_iter(values.iter())) {
+                match conn.execute(
+                    &format!("INSERT INTO {name} ({}) VALUES ({marks})", names.join(", ")),
+                    params_from_iter(values.iter()),
+                ) {
                     Ok(_) => Reply::json(201, &json!({ "id": conn.last_insert_rowid() })),
                     Err(e) => db_error(e),
                 }
@@ -177,12 +210,21 @@ pub fn handle(tables: &Tables, conn: Option<&Connection>, method: &str, target: 
 /// Fails unless every table and column in `tables` exists (the hub owns the schema; this never changes it).
 pub fn check_schema(conn: &Connection, tables: &Tables) -> Result<(), String> {
     for (t, cols) in tables.read {
-        let mut stmt = conn.prepare("SELECT name FROM pragma_table_info(?)").map_err(|e| e.to_string())?;
-        let have: Vec<String> = stmt.query_map([t], |r| r.get(0)).map_err(|e| e.to_string())?.filter_map(Result::ok).collect();
+        let mut stmt = conn
+            .prepare("SELECT name FROM pragma_table_info(?)")
+            .map_err(|e| e.to_string())?;
+        let have: Vec<String> = stmt
+            .query_map([t], |r| r.get(0))
+            .map_err(|e| e.to_string())?
+            .filter_map(Result::ok)
+            .collect();
         if have.is_empty() {
             return Err(format!("no {t} table"));
         }
-        let missing: Vec<&str> = std::iter::once("id").chain(cols.iter().copied()).filter(|c| !have.iter().any(|h| h == c)).collect();
+        let missing: Vec<&str> = std::iter::once("id")
+            .chain(cols.iter().copied())
+            .filter(|c| !have.iter().any(|h| h == c))
+            .collect();
         if !missing.is_empty() {
             return Err(format!("{t} lacks {}", missing.join(", ")));
         }
@@ -196,9 +238,14 @@ pub fn open(path: &std::path::Path, read_only: bool) -> Result<Connection, Strin
     if !path.is_file() {
         return Err(format!("no database at {}", path.display()));
     }
-    let flags = if read_only { OpenFlags::SQLITE_OPEN_READ_ONLY } else { OpenFlags::SQLITE_OPEN_READ_WRITE };
+    let flags = if read_only {
+        OpenFlags::SQLITE_OPEN_READ_ONLY
+    } else {
+        OpenFlags::SQLITE_OPEN_READ_WRITE
+    };
     let conn = Connection::open_with_flags(path, flags | OpenFlags::SQLITE_OPEN_NO_MUTEX).map_err(|e| e.to_string())?;
-    conn.busy_timeout(std::time::Duration::from_secs(5)).map_err(|e| e.to_string())?;
+    conn.busy_timeout(std::time::Duration::from_secs(5))
+        .map_err(|e| e.to_string())?;
     conn.pragma_update(None, "foreign_keys", 1).map_err(|e| e.to_string())?;
     Ok(conn)
 }
@@ -209,7 +256,10 @@ mod tests {
 
     const TABLES: Tables = Tables {
         read: &[
-            ("tickets", &["customer_id", "assignee_id", "title", "body", "status", "created_at"]),
+            (
+                "tickets",
+                &["customer_id", "assignee_id", "title", "body", "status", "created_at"],
+            ),
             ("customers", &["name", "email", "city"]),
         ],
         write: Some("tickets"),
@@ -218,9 +268,14 @@ mod tests {
     fn db() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(include_str!("../../mock/schema.sql")).unwrap();
-        conn.execute_batch("PRAGMA foreign_keys=ON; INSERT INTO customers (name) VALUES ('Ada'), ('Bo');").unwrap();
+        conn.execute_batch("PRAGMA foreign_keys=ON; INSERT INTO customers (name) VALUES ('Ada'), ('Bo');")
+            .unwrap();
         for i in 1..=7 {
-            conn.execute("INSERT INTO tickets (customer_id, title, status) VALUES (1, ?, 'open')", [format!("T{i}")]).unwrap();
+            conn.execute(
+                "INSERT INTO tickets (customer_id, title, status) VALUES (1, ?, 'open')",
+                [format!("T{i}")],
+            )
+            .unwrap();
         }
         conn
     }
@@ -234,10 +289,18 @@ mod tests {
         let c = db();
         let r = handle(&TABLES, Some(&c), "GET", "/api/tickets?limit=3&offset=2", b"");
         assert_eq!(r.status, 200);
-        let ids: Vec<i64> = body(&r).as_array().unwrap().iter().map(|t| t["id"].as_i64().unwrap()).collect();
+        let ids: Vec<i64> = body(&r)
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["id"].as_i64().unwrap())
+            .collect();
         assert_eq!(ids, vec![5, 4, 3]);
         assert!(r.headers.contains(&("X-Total-Count", "7".into())));
-        assert_eq!(handle(&TABLES, Some(&c), "GET", "/api/tickets?limit=900", b"").status, 400);
+        assert_eq!(
+            handle(&TABLES, Some(&c), "GET", "/api/tickets?limit=900", b"").status,
+            400
+        );
         assert_eq!(handle(&TABLES, Some(&c), "GET", "/api/tickets/3", b"").status, 200);
         assert_eq!(handle(&TABLES, Some(&c), "GET", "/api/tickets/99", b"").status, 404);
         assert_eq!(handle(&TABLES, Some(&c), "GET", "/api/orders", b"").status, 404);
@@ -246,28 +309,65 @@ mod tests {
     #[test]
     fn create_patch_delete_round_trip_with_cleaning() {
         let c = db();
-        let sent = format!("{{\"title\":\"Hi{} there\",\"customer_id\":2,\"nope\":1}}", char::from_u32(0x202e).unwrap());
+        let sent = format!(
+            "{{\"title\":\"Hi{} there\",\"customer_id\":2,\"nope\":1}}",
+            char::from_u32(0x202e).unwrap()
+        );
         let r = handle(&TABLES, Some(&c), "POST", "/api/tickets", sent.as_bytes());
         assert_eq!(r.status, 201);
         let id = body(&r)["id"].as_i64().unwrap();
         let got = body(&handle(&TABLES, Some(&c), "GET", &format!("/api/tickets/{id}"), b""));
         assert_eq!(got["title"], "Hi there");
         assert_eq!(got["status"], "open"); // the schema's default
-        let r = handle(&TABLES, Some(&c), "PATCH", &format!("/api/tickets/{id}"), br#"{"status":"closed"}"#);
+        let r = handle(
+            &TABLES,
+            Some(&c),
+            "PATCH",
+            &format!("/api/tickets/{id}"),
+            br#"{"status":"closed"}"#,
+        );
         assert_eq!((r.status, body(&r)["updated"].as_i64()), (200, Some(1)));
-        assert_eq!(handle(&TABLES, Some(&c), "DELETE", &format!("/api/tickets/{id}"), b"").status, 200);
-        assert_eq!(handle(&TABLES, Some(&c), "DELETE", &format!("/api/tickets/{id}"), b"").status, 404);
+        assert_eq!(
+            handle(&TABLES, Some(&c), "DELETE", &format!("/api/tickets/{id}"), b"").status,
+            200
+        );
+        assert_eq!(
+            handle(&TABLES, Some(&c), "DELETE", &format!("/api/tickets/{id}"), b"").status,
+            404
+        );
     }
 
     #[test]
     fn bad_input_and_constraints() {
         let c = db();
         assert_eq!(handle(&TABLES, Some(&c), "POST", "/api/tickets", b"[1]").status, 400);
-        assert_eq!(handle(&TABLES, Some(&c), "POST", "/api/tickets", br#"{"nope":1}"#).status, 400);
-        assert_eq!(handle(&TABLES, Some(&c), "POST", "/api/tickets", br#"{"body":"no title"}"#).status, 409); // NOT NULL
-        assert_eq!(handle(&TABLES, Some(&c), "POST", "/api/tickets", br#"{"title":"x","customer_id":999}"#).status, 409); // FK
-        assert_eq!(handle(&TABLES, Some(&c), "PATCH", "/api/tickets/1", br#"{"title":{"a":1}}"#).status, 400);
-        assert_eq!(handle(&TABLES, Some(&c), "POST", "/api/customers", br#"{"name":"x"}"#).status, 405);
+        assert_eq!(
+            handle(&TABLES, Some(&c), "POST", "/api/tickets", br#"{"nope":1}"#).status,
+            400
+        );
+        assert_eq!(
+            handle(&TABLES, Some(&c), "POST", "/api/tickets", br#"{"body":"no title"}"#).status,
+            409
+        ); // NOT NULL
+        assert_eq!(
+            handle(
+                &TABLES,
+                Some(&c),
+                "POST",
+                "/api/tickets",
+                br#"{"title":"x","customer_id":999}"#
+            )
+            .status,
+            409
+        ); // FK
+        assert_eq!(
+            handle(&TABLES, Some(&c), "PATCH", "/api/tickets/1", br#"{"title":{"a":1}}"#).status,
+            400
+        );
+        assert_eq!(
+            handle(&TABLES, Some(&c), "POST", "/api/customers", br#"{"name":"x"}"#).status,
+            405
+        );
         assert_eq!(handle(&TABLES, None, "GET", "/api/tickets", b"").status, 503);
     }
 
@@ -276,7 +376,8 @@ mod tests {
         let c = db();
         assert!(check_schema(&c, &TABLES).is_ok());
         let bad = Connection::open_in_memory().unwrap();
-        bad.execute_batch("CREATE TABLE tickets (id INTEGER, title TEXT); CREATE TABLE customers (id INTEGER)").unwrap();
+        bad.execute_batch("CREATE TABLE tickets (id INTEGER, title TEXT); CREATE TABLE customers (id INTEGER)")
+            .unwrap();
         assert!(check_schema(&bad, &TABLES).unwrap_err().starts_with("tickets lacks"));
         let missing = std::env::temp_dir().join("generic-company-tickets-test-missing.db");
         assert!(open(&missing, true).is_err());
@@ -284,4 +385,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=9ce8c92ad6e76c7ccb1fa668507eb83e9ee102ea7db8458c32169135c907d808 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=219e637e4a6384c710ff2c2fcbfd5e276dfe4bb93faf667818045e6ef9b1062a ====

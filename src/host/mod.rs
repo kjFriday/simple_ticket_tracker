@@ -114,7 +114,11 @@ fn tell(o: &Options, spec: &Spec, msg: &str) {
 
 fn today() -> String {
     // days since 1970 -> civil date (Howard Hinnant's algorithm); no chrono needed
-    let days = (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() / 86_400) as i64;
+    let days = (std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        / 86_400) as i64;
     let z = days + 719_468;
     let era = z.div_euclid(146_097);
     let doe = z - era * 146_097;
@@ -140,7 +144,14 @@ fn run_installer(o: &Options, spec: &Spec) -> Result<(i32, Option<PathBuf>), Str
         www: assets::www_dir(),
         icon: spec.icon_ico,
     };
-    let plan = install::plan(&program, &paths::real_env, o.root.as_deref(), o.desktop_shortcut, size, &today());
+    let plan = install::plan(
+        &program,
+        &paths::real_env,
+        o.root.as_deref(),
+        o.desktop_shortcut,
+        size,
+        &today(),
+    );
     if o.uninstall {
         let plan = install::located(&plan, &install::read_powershell)?;
         if install::wizard(&plan).is_some() {
@@ -156,15 +167,31 @@ fn run_installer(o: &Options, spec: &Spec) -> Result<(i32, Option<PathBuf>), Str
         }
         let purge = o.purge.then(|| paths::data_dir(spec.app_id, &paths::real_env));
         let (removed, later) = install::uninstall(&plan, &install::powershell, &exe, purge.as_deref())?;
-        tell(o, spec, &if removed {
-            format!("{} uninstalled. The database is kept.", spec.name)
-        } else {
-            format!("{} was not installed; shortcuts and the uninstall entry are cleared.", spec.name)
-        });
+        tell(
+            o,
+            spec,
+            &if removed {
+                format!("{} uninstalled. The database is kept.", spec.name)
+            } else {
+                format!(
+                    "{} was not installed; shortcuts and the uninstall entry are cleared.",
+                    spec.name
+                )
+            },
+        );
         return Ok((0, later));
     }
     install::install(&plan, &install::powershell)?;
-    tell(o, spec, &format!("{} {} installed in {}. Find it in the Start menu under Generic Company Inc.", spec.name, spec.version, plan.install_dir.display()));
+    tell(
+        o,
+        spec,
+        &format!(
+            "{} {} installed in {}. Find it in the Start menu under Generic Company Inc.",
+            spec.name,
+            spec.version,
+            plan.install_dir.display()
+        ),
+    );
     Ok((0, None))
 }
 
@@ -176,10 +203,16 @@ struct State {
 
 fn choose(path: &Path, spec: &Spec, force_mock: bool) -> State {
     if force_mock {
-        return State { db: None, why: "--mock".into() };
+        return State {
+            db: None,
+            why: "--mock".into(),
+        };
     }
     match api::open(path, true).and_then(|c| api::check_schema(&c, &spec.tables)) {
-        Ok(()) => State { db: Some(path.to_path_buf()), why: String::new() },
+        Ok(()) => State {
+            db: Some(path.to_path_buf()),
+            why: String::new(),
+        },
         Err(e) => State { db: None, why: e },
     }
 }
@@ -194,24 +227,39 @@ fn reply(r: api::Reply) -> Response<Cow<'static, [u8]>> {
 
 fn serve(spec: &Spec, state: &Mutex<State>, www: &Path, req: Request<Vec<u8>>) -> Response<Cow<'static, [u8]>> {
     let path = req.uri().path().to_string();
-    let target = req.uri().path_and_query().map(|p| p.as_str().to_string()).unwrap_or_else(|| path.clone());
+    let target = req
+        .uri()
+        .path_and_query()
+        .map(|p| p.as_str().to_string())
+        .unwrap_or_else(|| path.clone());
     let method = req.method().as_str().to_string();
     if path == "/api/source" {
         let s = state.lock().unwrap();
-        return reply(api::Reply::json(200, &json!({
-            "db": s.db.as_ref().map(|p| p.display().to_string()), "why": s.why, "app": spec.name, "version": spec.version,
-            "credit": CREDIT, "publisher": PUBLISHER,
-        })));
+        return reply(api::Reply::json(
+            200,
+            &json!({
+                "db": s.db.as_ref().map(|p| p.display().to_string()), "why": s.why, "app": spec.name, "version": spec.version,
+                "credit": CREDIT, "publisher": PUBLISHER,
+            }),
+        ));
     }
     if path == "/host/db" && method == "POST" {
-        let asked = serde_json::from_slice::<Value>(req.body()).ok().and_then(|v| v["path"].as_str().map(PathBuf::from));
-        let Some(asked) = asked else { return reply(api::Reply::json(400, &json!({"error": "send {\"path\": ...}"}))) };
+        let asked = serde_json::from_slice::<Value>(req.body())
+            .ok()
+            .and_then(|v| v["path"].as_str().map(PathBuf::from));
+        let Some(asked) = asked else {
+            return reply(api::Reply::json(400, &json!({"error": "send {\"path\": ...}"})));
+        };
         let asked = std::path::absolute(&asked).unwrap_or(asked);
         let next = choose(&asked, spec, false);
         if next.db.is_none() {
             return reply(api::Reply::json(400, &json!({ "error": next.why })));
         }
-        let saved = paths::save_settings(spec.app_id, &paths::real_env, Map::from_iter([("db".to_string(), Value::from(asked.display().to_string()))]));
+        let saved = paths::save_settings(
+            spec.app_id,
+            &paths::real_env,
+            Map::from_iter([("db".to_string(), Value::from(asked.display().to_string()))]),
+        );
         *state.lock().unwrap() = next;
         return reply(match saved {
             Ok(()) => api::Reply::json(200, &json!({ "db": asked.display().to_string() })),
@@ -228,7 +276,11 @@ fn serve(spec: &Spec, state: &Mutex<State>, www: &Path, req: Request<Vec<u8>>) -
             .header("Content-Type", assets::mime(&file.display().to_string()))
             .body(Cow::Owned(body))
             .unwrap(),
-        None => Response::builder().status(404).header("Content-Type", "text/plain").body(Cow::Borrowed(&b"not found"[..])).unwrap(),
+        None => Response::builder()
+            .status(404)
+            .header("Content-Type", "text/plain")
+            .body(Cow::Borrowed(&b"not found"[..]))
+            .unwrap(),
     }
 }
 
@@ -241,7 +293,10 @@ fn window_icon(spec: &Spec) -> Option<Icon> {
     use tao::platform::windows::IconExtWindows;
     Icon::from_resource(1, None).ok().or_else(|| {
         let raw = spec.icon_rgba;
-        let (w, h) = (u32::from_le_bytes(raw[0..4].try_into().ok()?), u32::from_le_bytes(raw[4..8].try_into().ok()?));
+        let (w, h) = (
+            u32::from_le_bytes(raw[0..4].try_into().ok()?),
+            u32::from_le_bytes(raw[4..8].try_into().ok()?),
+        );
         Icon::from_rgba(raw[8..].to_vec(), w, h).ok()
     })
 }
@@ -346,7 +401,10 @@ mod tests {
 
     #[test]
     fn options() {
-        let args: Vec<String> = ["--db", "x.db", "-install", "--root", "sb", "--quiet"].iter().map(|s| s.to_string()).collect();
+        let args: Vec<String> = ["--db", "x.db", "-install", "--root", "sb", "--quiet"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
         let o = parse(&args).unwrap();
         assert_eq!((o.db.as_deref(), o.install, o.quiet), (Some("x.db"), true, true));
         assert_eq!(o.root.as_deref(), Some(Path::new("sb")));
@@ -369,4 +427,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=5a1fc009beba3c3358707cfd16205937a147f0b66786ad696a48027c8f2f0956 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=de7387de1a51a08f6065cc6be18e54f6d79574c2866358d3d2877e7fe1ed0eba ====

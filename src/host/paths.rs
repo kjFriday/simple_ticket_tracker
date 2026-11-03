@@ -21,11 +21,15 @@ pub fn real_env(key: &str) -> Option<String> {
 }
 
 fn home() -> PathBuf {
-    real_env("USERPROFILE").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("."))
+    real_env("USERPROFILE")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."))
 }
 
 pub fn local_appdata(env: Env) -> PathBuf {
-    env("LOCALAPPDATA").map(PathBuf::from).unwrap_or_else(|| home().join("AppData").join("Local"))
+    env("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home().join("AppData").join("Local"))
 }
 
 pub fn base_dir(env: Env) -> PathBuf {
@@ -69,12 +73,17 @@ fn absolute(p: &str) -> PathBuf {
     if p.is_absolute() {
         p.to_path_buf()
     } else {
-        std::env::current_dir().map(|d| d.join(p)).unwrap_or_else(|_| p.to_path_buf())
+        std::env::current_dir()
+            .map(|d| d.join(p))
+            .unwrap_or_else(|_| p.to_path_buf())
     }
 }
 
 pub fn resolve_db(flag: Option<&str>, app_id: &str, env: Env) -> PathBuf {
-    let saved = load_settings(app_id, env).get("db").and_then(Value::as_str).map(String::from);
+    let saved = load_settings(app_id, env)
+        .get("db")
+        .and_then(Value::as_str)
+        .map(String::from);
     [flag.map(String::from), env("GENERIC_COMPANY_DB"), saved]
         .into_iter()
         .flatten()
@@ -105,15 +114,25 @@ mod tests {
             move |k: &str| vars.get(k).cloned().filter(|v| !v.is_empty())
         };
         let e = env_of(&vars);
-        assert_eq!(resolve_db(None, "GenericCompany.T", &e), dir.join("Generic Company Inc").join("generic_company.db"));
+        assert_eq!(
+            resolve_db(None, "GenericCompany.T", &e),
+            dir.join("Generic Company Inc").join("generic_company.db")
+        );
         let saved = dir.join("saved.db").display().to_string();
-        save_settings("GenericCompany.T", &e, Map::from_iter([("db".to_string(), Value::from(saved.clone()))])).unwrap();
+        save_settings(
+            "GenericCompany.T",
+            &e,
+            Map::from_iter([("db".to_string(), Value::from(saved.clone()))]),
+        )
+        .unwrap();
         assert_eq!(resolve_db(None, "GenericCompany.T", &e), PathBuf::from(&saved));
         vars.insert("GENERIC_COMPANY_DB".into(), dir.join("env.db").display().to_string());
         let e = env_of(&vars);
         assert!(resolve_db(None, "GenericCompany.T", &e).ends_with("env.db"));
         assert!(resolve_db(Some("  "), "GenericCompany.T", &e).ends_with("env.db"));
-        assert!(resolve_db(Some(&dir.join("flag.db").display().to_string()), "GenericCompany.T", &e).ends_with("flag.db"));
+        assert!(
+            resolve_db(Some(&dir.join("flag.db").display().to_string()), "GenericCompany.T", &e).ends_with("flag.db")
+        );
         let _ = std::fs::remove_dir_all(dir);
     }
 
@@ -125,13 +144,21 @@ mod tests {
         std::fs::create_dir_all(data_dir("GenericCompany.T", &e)).unwrap();
         std::fs::write(settings_path("GenericCompany.T", &e), "{not json").unwrap();
         assert!(load_settings("GenericCompany.T", &e).is_empty());
-        save_settings("GenericCompany.T", &e, Map::from_iter([("db".into(), "a".into()), ("theme".into(), "dark".into())])).unwrap();
+        save_settings(
+            "GenericCompany.T",
+            &e,
+            Map::from_iter([("db".into(), "a".into()), ("theme".into(), "dark".into())]),
+        )
+        .unwrap();
         save_settings("GenericCompany.T", &e, Map::from_iter([("db".into(), "b".into())])).unwrap();
         let s = load_settings("GenericCompany.T", &e);
-        assert_eq!((s["db"].as_str(), s["theme"].as_str(), s["version"].as_i64()), (Some("b"), Some("dark"), Some(1)));
+        assert_eq!(
+            (s["db"].as_str(), s["theme"].as_str(), s["version"].as_i64()),
+            (Some("b"), Some("dark"), Some(1))
+        );
         assert_eq!(std::fs::read_dir(data_dir("GenericCompany.T", &e)).unwrap().count(), 1);
         let _ = std::fs::remove_dir_all(dir);
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=5f4bdf3da92ac66dc546dc0cd3324f2ea22741a048cf3e5b15cd024233c5725b ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=069a3f8e924b58866b763ccdb1cae89d94020c2e8dde72316a617960c72d1615 ====
