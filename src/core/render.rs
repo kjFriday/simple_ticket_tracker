@@ -8,10 +8,26 @@
 // ========================================================================
 
 //! HTML for the board. Every value from data passes `escape` before it reaches the page.
+//!
+//! src/web.rs sets the strings built here as innerHTML: `board` fills `#board`, and `options` fills the
+//! filter and editor `<select>`s. There is no UI framework; the page is these strings.
+//!
+//! The markup is a contract with other files:
+//! - web.rs's click handler reads `data-act` (prev, next, edit, delete) on a button and `data-id` on the
+//! enclosing `.card`.
+//! - main.rs's `smoke_count` counts `.card` elements for the `--smoke` self-check.
+//! - www/style.css styles the class names (column, card, body, count, danger).
+//!
+//! Escaping matters because titles, bodies and names are free text that any program sharing the
+//! database may have written.
 
 use super::board::{columns, Filter};
 use super::model::{name_of, Person, Ticket};
 
+/// `s` with the five HTML-special characters replaced by entities.
+///
+/// Replacing both quote kinds as well as `&`, `<` and `>` makes the result safe as element text and
+/// inside a quoted attribute value. `&#39;` is used for the apostrophe because HTML 4 has no `&apos;`.
 pub fn escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -27,6 +43,12 @@ pub fn escape(s: &str) -> String {
     out
 }
 
+/// One ticket as an `<article class="card">`: number, day, title, optional body, customer and assignee,
+/// then its buttons.
+///
+/// The left and right arrow buttons appear only when the ticket can move that way (`Status::prev` and
+/// `Status::next`), so the first column has no left arrow and the last no right arrow. The arrows and
+/// the id are fixed text; everything taken from the row is escaped.
 fn card(t: &Ticket, customers: &[Person], employees: &[Person]) -> String {
     let left = if t.status.prev().is_some() {
         r#"<button data-act="prev" title="Move left">&larr;</button>"#
@@ -43,7 +65,10 @@ fn card(t: &Ticket, customers: &[Person], employees: &[Person]) -> String {
         .as_deref()
         .map(|b| format!(r#"<p class="body">{}</p>"#, escape(b)))
         .unwrap_or_default();
+    // "yyyy-mm-dd" is the first 10 bytes of the stamp; get() returns None rather than panicking when the
+    // text is shorter or byte 10 falls inside a character, and then the whole text is shown
     let day = t.created_at.as_deref().map(|d| d.get(..10).unwrap_or(d)).unwrap_or("");
+    // concat! joins the raw-string pieces at compile time into one format string with named arguments
     format!(
         concat!(
             r#"<article class="card" data-id="{id}">"#,
@@ -64,6 +89,11 @@ fn card(t: &Ticket, customers: &[Person], employees: &[Person]) -> String {
     )
 }
 
+/// The whole board: one `<section class="column">` per status, in board order, each with a heading,
+/// the count of cards it shows and the cards themselves.
+///
+/// `filter` and `customers` go to `board::columns` (the customers also give the search its names);
+/// `employees` gives the assignee names.
 pub fn board(tickets: &[Ticket], filter: &Filter, customers: &[Person], employees: &[Person]) -> String {
     columns(tickets, filter, customers)
         .into_iter()
@@ -81,6 +111,10 @@ pub fn board(tickets: &[Ticket], filter: &Filter, customers: &[Person], employee
 }
 
 /// `<option>`s for a person picker; `blank` labels the empty choice.
+///
+/// The empty choice comes first with value "" (which `validate::parse_id` reads as None), then the
+/// people sorted by name and then id. Each label adds the role, else the city, in brackets: employees
+/// show their role and customers their city. The person whose id equals `selected` is marked selected.
 pub fn options(people: &[Person], selected: Option<i64>, blank: &str) -> String {
     let mut out = format!(r#"<option value="">{}</option>"#, escape(blank));
     let mut sorted: Vec<&Person> = people.iter().collect();
@@ -104,11 +138,13 @@ pub fn options(people: &[Person], selected: Option<i64>, blank: &str) -> String 
     out
 }
 
+/// Escaping, the board's markup and the pickers.
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::core::model::Status;
 
+    /// All five specials in one string, including `&` itself, come out as entities.
     #[test]
     fn escape_covers_html_specials() {
         assert_eq!(
@@ -117,6 +153,8 @@ mod tests {
         );
     }
 
+    /// A `<script>` title and an `&` body are escaped, the day is cut from the stamp, empty columns still
+    /// render, and an open ticket gets only the right arrow.
     #[test]
     fn board_escapes_titles_and_counts_columns() {
         let ts = vec![Ticket {
@@ -139,6 +177,8 @@ mod tests {
         assert!(html.contains(r#"data-act="next""#));
     }
 
+    /// Names sort before ids, a name with markup is escaped, the city stands in for a missing role, and
+    /// the selected id is marked.
     #[test]
     fn options_sort_and_select() {
         let p = vec![
@@ -163,4 +203,4 @@ mod tests {
     }
 }
 
-// ==== stamp v1 | author=kjFriday | hmac-sha256=cc8f86d3bfa1938d2dbfad7768dab2373db9a002cbe70c14f7e4f5cf7a8e9c86 ====
+// ==== stamp v1 | author=kjFriday | hmac-sha256=e1d58b5dcaf68bca4628f7f0c05e24d934766320252cbfd78c5814b5a01b3d42 ====

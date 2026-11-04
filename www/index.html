@@ -8,6 +8,19 @@
 <!-- Reused code, if any, is mapped in PROVENANCE.md. -->
 <!-- ======================================================================== -->
 
+<!-- The ticket board's only page: the static frame that src/web.rs fills in.
+     Served by the desktop program from generic-company://localhost/index.html, or by any static
+     server for the mock snapshot. main.js loads the WebAssembly build; from then on src/web.rs
+     finds every element below by id, so an id renamed here must be renamed there too.
+     Layout, top to bottom:
+     1. header: title, the mode badge (mock / shared database), the Data source picker and the
+        Reload, Database... and About buttons
+     2. filters: search box, assignee and customer pickers (filled by web.rs), the shown-of-total
+        count and New ticket
+     3. #board: replaced whole with the three status columns (src/core/render.rs)
+     4. footer: the status bar, where every request and error is reported, and the version
+     5. two dialogs: the ticket editor and the About box -->
+
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -20,6 +33,8 @@
   <header class="top">
     <h1><img class="px" src="favicon.png" width="32" height="32" alt="">Generic Company Inc. <span>Tickets</span></h1>
     <span id="mode" class="badge">mock</span>
+    <!-- "hub" names the shared database: web.rs DB_OPTION matches it; the value dates from when
+         the CRUD hub served /api -->
     <label>Data
       <select id="source">
         <option value="hub">Shared database</option>
@@ -43,6 +58,8 @@
 
   <footer><output id="status"></output><span id="version" class="version"></span></footer>
 
+  <!-- the editor: e-id is empty for a new ticket and holds the id when editing; maxlength 240
+       matches the table's limit (SPEC.md), and web.rs cleans and checks the text again -->
   <dialog id="editor">
     <form id="editor-form">
       <h2 id="editor-title">New ticket</h2>
@@ -65,6 +82,8 @@
     </form>
   </dialog>
 
+  <!-- About: about-db is filled with the database path when it opens; the icon credit is the
+       one the CC BY licence asks for -->
   <dialog id="about-box" class="about">
     <img class="px" src="favicon.png" width="128" height="128" alt="">
     <h2>Generic Company Ticket Tracker</h2>
@@ -78,4 +97,4 @@
 </body>
 </html>
 
-<!-- ==== stamp v1 | author=kjFriday | hmac-sha256=dc36b3b337d3c187c42615c2b3a800bd2b9dff61a27208a346a10e326eabdeb4 ==== -->
+<!-- ==== stamp v1 | author=kjFriday | hmac-sha256=c0127d1c1c54f6939362149f799b2092404bde422f18b03311c99f4a67057a46 ==== -->

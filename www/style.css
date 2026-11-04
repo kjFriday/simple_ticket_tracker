@@ -1,20 +1,30 @@
 /* ==== Generic Company Inc. portfolio ==================================== */
 /* Project: ticket_tracker | File: www/style.css */
-/* About: CSS source for ticket_tracker. */
+/* About: The ticket board's styles: bars, three status columns, cards and dialogs. */
 /* Copyright (c) 2026 kjFriday | SPDX-License-Identifier: AGPL-3.0-only */
 /* You may change this file under the AGPL-3.0. The stamp at the end marks */
 /* the version kjFriday wrote. Verify with the portfolio's tools/stamp.py --check. */
 /* Reused code, if any, is mapped in PROVENANCE.md. */
 /* ======================================================================== */
 
+/* The ticket board's styles: bars, three status columns, cards and dialogs.
+   Covers the header and filter bars, the three-column board, the cards, the status bar and the two
+   dialogs (editor and About). The classes match www/index.html and the HTML that src/core/render.rs writes for the board
+   (.column, .card, .count, data-act buttons); src/web.rs toggles .live on the mode badge and .error
+   on the status bar.
+   Colours are custom properties on :root, swapped in one place for dark mode. */
+
+/* theme: colour tokens and the base font; --live marks the shared-database badge */
 :root {
   --bg: #f5f6f8; --panel: #fff; --ink: #1d2330; --muted: #667085; --line: #dde1e7;
   --accent: #2f5bd3; --live: #12805c; --danger: #b42318;
   font: 14px/1.4 system-ui, sans-serif; color: var(--ink); background: var(--bg);
 }
+/* dark mode follows the system setting (WebView2 passes on the Windows app theme) */
 @media (prefers-color-scheme: dark) {
   :root { --bg: #14171c; --panel: #1d2128; --ink: #e6e8ec; --muted: #98a2b3; --line: #2e343e; --accent: #7c9cf5; --live: #4cc38a; --danger: #f97066; }
 }
+/* page frame: a full-height column so the board takes the space between the bars */
 * { box-sizing: border-box; }
 body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
 button, input, select, textarea { font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
@@ -22,6 +32,7 @@ button { cursor: pointer; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 button.danger { color: var(--danger); }
 
+/* header and filter bars */
 .top, .filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
 .top h1 { font-size: 18px; margin: 0 8px 0 0; }
 .top h1 span { color: var(--muted); font-weight: 400; }
@@ -30,10 +41,16 @@ button.danger { color: var(--danger); }
 .filters input[type=search] { flex: 1 1 240px; }
 #count { color: var(--muted); margin-left: auto; }
 
+/* board: one grid column per status; each column scrolls on its own.
+   170px is roughly the header, filter and status bars plus the board's padding, so a full column ends
+   above the status bar. The sticky heading's top: -8px cancels the column's 8px padding, so it pins
+   to the very top edge while the cards scroll under it. */
 .board { flex: 1; display: grid; grid-template-columns: repeat(3, minmax(260px, 1fr)); gap: 12px; padding: 12px 16px; align-items: start; }
 .column { background: color-mix(in srgb, var(--line) 40%, transparent); border-radius: 8px; padding: 8px; max-height: calc(100vh - 170px); overflow-y: auto; }
 .column h2 { font-size: 14px; margin: 4px 4px 8px; position: sticky; top: -8px; background: inherit; }
 .count { color: var(--muted); font-weight: 400; }
+/* cards: header (id, date), title, body, a customer/assignee list, then the action buttons with the
+   → button pushed to the right */
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; }
 .card header { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
 .card h3 { font-size: 14px; margin: 4px 0; }
@@ -45,9 +62,11 @@ button.danger { color: var(--danger); }
 .card footer button { padding: 2px 8px; font-size: 12px; }
 .card footer [data-act=next] { margin-left: auto; }
 
+/* status bar: monospace so request lines (PATCH /api/tickets/7 ...) read cleanly */
 footer > output { display: block; padding: 6px 16px; border-top: 1px solid var(--line); background: var(--panel); color: var(--muted); font-family: ui-monospace, monospace; font-size: 12px; }
 footer > output.error { color: var(--danger); }
 
+/* dialogs: the editor form and the About box */
 dialog { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); width: min(480px, 92vw); }
 dialog::backdrop { background: rgb(0 0 0 / .35); }
 dialog form { display: grid; gap: 10px; }
@@ -62,4 +81,4 @@ footer .version { float: right; color: var(--muted); }
 .about { text-align: center; max-width: 420px; }
 .about .small { font-size: 12px; color: var(--muted); }
 
-/* ==== stamp v1 | author=kjFriday | hmac-sha256=32ae8829361984c768c29ff561ca29ee29b4fc4979cfdd998082142d12f538d5 ==== */
+/* ==== stamp v1 | author=kjFriday | hmac-sha256=9e30ffac7029ce01532f6a6b3b1427b7dd792707e1fe00c11e8efcd37f3fb298 ==== */
